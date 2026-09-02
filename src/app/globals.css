@@ -1,54 +1,64 @@
-@import "tailwindcss";
-
-
+﻿@import "tailwindcss";
 
 @custom-variant dark (&:is(.dark *));
 
 @theme {
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-heading);
+  --font-sans: var(--font-inter);
+  --font-heading: var(--font-inter);
+  --shadow-clinical: 0px 4px 12px rgba(15, 23, 42, 0.05);
 }
 
 :root {
-  --primary: #0E7490;
-  --primary-foreground: #FFFFFF;
-  --secondary: #164E63;
-  --accent: #22D3EE;
-  --background: #F8FAFC;
+  /* Surface and Backgrounds */
+  --background: #FFFFFF;
+  --foreground: #0F172A;
   --card: #FFFFFF;
-  --border: #E2E8F0;
-  --muted: #F1F5F9;
+  --card-foreground: #0F172A;
+  --popover: #FFFFFF;
+  --popover-foreground: #0F172A;
+  
+  /* Primary & Secondary Brands */
+  --primary: #0D9488;
+  --primary-foreground: #FFFFFF;
+  --secondary: #EFF6FF;
+  --secondary-foreground: #0D9488;
+  
+  /* Muted, Accent, Destructive */
+  --muted: #EFF6FF;
   --muted-foreground: #64748B;
-  --destructive: #DC2626;
+  --accent: #EFF6FF;
+  --accent-foreground: #0D9488;
+  --destructive: #ba1a1a;
   --destructive-foreground: #FFFFFF;
-  --success: #059669;
-  --warning: #D97706;
-  --radius: 0.75rem;
-
-  --foreground: #020817;
-  --card-foreground: #020817;
-  --popover: #ffffff;
-  --popover-foreground: #020817;
-  --secondary-foreground: #0f172a;
-  --accent-foreground: #0f172a;
-  --ring: #0E7490;
+  
+  /* Structure */
+  --border: #E2E8F0;
+  --input: #E2E8F0;
+  --ring: #0D9488;
+  
+  /* Shapes */
+  --radius: 0.25rem;
 }
 
 .dark {
   --background: #0F172A;
+  --foreground: #F8FAFC;
   --card: #1E293B;
+  --card-foreground: #F8FAFC;
+  --popover: #0F172A;
+  --popover-foreground: #F8FAFC;
   --primary: #22D3EE;
+  --primary-foreground: #0F172A;
+  --secondary: #1E293B;
+  --secondary-foreground: #22D3EE;
+  --muted: #1E293B;
+  --muted-foreground: #94A3B8;
+  --accent: #1E293B;
+  --accent-foreground: #22D3EE;
+  --destructive: #EF4444;
+  --destructive-foreground: #FFFFFF;
   --border: #1E293B;
-  --muted: #1e293b;
-  --foreground: #f8fafc;
-  --card-foreground: #f8fafc;
-  --popover: #020817;
-  --popover-foreground: #f8fafc;
-  --secondary: #1e293b;
-  --secondary-foreground: #f8fafc;
-  --accent: #1e293b;
-  --accent-foreground: #f8fafc;
+  --input: #1E293B;
   --ring: #22D3EE;
 }
 
@@ -70,11 +80,12 @@
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
   --color-border: var(--border);
+  --color-input: var(--input);
   --color-ring: var(--ring);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+  --radius-sm: calc(var(--radius) - 2px);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) + 4px);
+  --radius-xl: calc(var(--radius) + 8px);
 }
 
 @layer base {
@@ -82,6 +93,11 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased selection:bg-primary/10 selection:text-primary;
+  }
+  
+  /* Zebra striping for data tables as requested */
+  .zebra-table tbody tr:nth-child(even) {
+    @apply bg-secondary/50;
   }
 }
