@@ -6,10 +6,12 @@ export function proxy(request: NextRequest) {
 
   const accessToken = request.cookies.get('accessToken')?.value;
   const userRole = request.cookies.get('userRole')?.value;
+  const verifiedToken = request.cookies.get('verifiedToken')?.value;
+  const pendingMobile = request.cookies.get('pendingMobile')?.value;
 
   const isAuthenticated = Boolean(accessToken);
 
-  // 1. Guest / Auth Routes (/login, /register, /auth/*)
+  // 1. Guest / Auth routes: /login, /register, /auth/*
   const isAuthRoute =
     pathname === '/login' ||
     pathname === '/register' ||
@@ -17,19 +19,42 @@ export function proxy(request: NextRequest) {
 
   if (isAuthRoute) {
     if (isAuthenticated) {
-      // Authenticated users cannot visit login/register; redirect to their dashboard
+      // Logged in users cannot visit login/register; redirect to their dashboard
       const targetDashboard =
         userRole === 'ADMIN' ? '/dashboard/admin' : '/dashboard/student';
       return NextResponse.redirect(new URL(targetDashboard, request.url));
     }
-    // Unauthenticated visitors are allowed
     return NextResponse.next();
   }
 
-  // 2. Dashboard Protected Routes (/dashboard, /dashboard/*)
+  // 2. Route Guard for /verify-otp
+  if (pathname === '/verify-otp') {
+    if (isAuthenticated) {
+      const targetDashboard =
+        userRole === 'ADMIN' ? '/dashboard/admin' : '/dashboard/student';
+      return NextResponse.redirect(new URL(targetDashboard, request.url));
+    }
+    // If no pending mobile registration session, redirect to register
+    if (!pendingMobile && !verifiedToken) {
+      return NextResponse.redirect(new URL('/register', request.url));
+    }
+    return NextResponse.next();
+  }
+
+  // 3. Route Guard for /complete-profile
+  if (pathname === '/complete-profile') {
+    // Requires either a fresh verifiedToken from OTP verification OR an active student session
+    const hasProfilePermission = Boolean(verifiedToken || accessToken);
+    if (!hasProfilePermission) {
+      return NextResponse.redirect(new URL('/register', request.url));
+    }
+    return NextResponse.next();
+  }
+
+  // 4. Protected Dashboard Routes: /dashboard, /dashboard/*
   if (pathname.startsWith('/dashboard')) {
     if (!isAuthenticated) {
-      // Unauthenticated users attempting to access dashboard; redirect to login
+      // Unauthenticated visitor trying to access dashboard -> redirect to login
       const loginUrl = new URL('/login', request.url);
       loginUrl.searchParams.set('redirect', pathname);
       return NextResponse.redirect(loginUrl);
@@ -37,17 +62,14 @@ export function proxy(request: NextRequest) {
 
     // Role-based Access Guards
     if (pathname.startsWith('/dashboard/admin') && userRole !== 'ADMIN') {
-      // Non-admin trying to access admin dashboard
       return NextResponse.redirect(new URL('/dashboard/student', request.url));
     }
 
     if (pathname.startsWith('/dashboard/student') && userRole === 'ADMIN') {
-      // Admin navigating to student dashboard -> redirect to admin dashboard
       return NextResponse.redirect(new URL('/dashboard/admin', request.url));
     }
 
     if (pathname === '/dashboard') {
-      // Base /dashboard route redirect to role-specific dashboard
       const targetDashboard =
         userRole === 'ADMIN' ? '/dashboard/admin' : '/dashboard/student';
       return NextResponse.redirect(new URL(targetDashboard, request.url));
@@ -61,6 +83,8 @@ export const config = {
   matcher: [
     '/login',
     '/register',
+    '/verify-otp',
+    '/complete-profile',
     '/auth/:path*',
     '/dashboard/:path*',
     '/dashboard',
