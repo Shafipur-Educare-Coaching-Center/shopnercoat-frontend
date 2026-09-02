@@ -13,6 +13,7 @@ const NAV_LINKS = [
   { name: 'Home', href: ROUTES.HOME },
   { name: 'How to Register', href: ROUTES.HOW_TO_REGISTER },
   { name: 'Announcement', href: ROUTES.ANNOUNCEMENTS },
+  { name: 'Ranking', href: ROUTES.RANKING },
 ];
 
 export function PublicNavbar() {
@@ -28,7 +29,7 @@ export function PublicNavbar() {
     <div className="px-3 md:px-4 w-full max-w-5xl mx-auto">
       <header className="rounded-xl md:rounded-2xl bg-white/95 backdrop-blur-md border border-border/80 shadow-clinical w-full">
         <div className="px-5 md:px-6 h-14 md:h-16 flex items-center justify-between">
-          
+
           {/* Brand Logo */}
           <Link href={ROUTES.HOME} className="shrink-0 flex items-center">
             <MedicalLogo />
@@ -55,14 +56,14 @@ export function PublicNavbar() {
 
           {/* Desktop Actions */}
           <div className="hidden md:flex items-center gap-2 lg:gap-3">
-            <Link 
-              href={ROUTES.LOGIN} 
+            <Link
+              href={ROUTES.LOGIN}
               className="text-sm font-semibold text-primary hover:text-primary/80 px-4 py-2 transition-colors"
             >
               Login
             </Link>
-            <Link 
-              href={ROUTES.REGISTER} 
+            <Link
+              href={ROUTES.REGISTER}
               className="bg-primary text-white hover:bg-primary/90 rounded-full px-6 py-2 text-sm font-semibold shadow-sm transition-all hover:scale-[1.02] active:scale-[0.98]"
             >
               Register
@@ -108,14 +109,14 @@ export function PublicNavbar() {
                   })}
                 </nav>
                 <div className="border-t border-border/50 pt-4 pb-2 flex flex-col gap-3">
-                  <Link 
-                    href={ROUTES.LOGIN} 
+                  <Link
+                    href={ROUTES.LOGIN}
                     className="w-full text-center py-2.5 text-[15px] font-semibold text-primary hover:bg-primary/5 rounded-xl transition-colors"
                   >
                     Login
                   </Link>
-                  <Link 
-                    href={ROUTES.REGISTER} 
+                  <Link
+                    href={ROUTES.REGISTER}
                     className="w-full text-center bg-primary text-white hover:bg-primary/90 rounded-full py-2.5 text-[15px] font-semibold shadow-sm transition-colors"
                   >
                     Register
