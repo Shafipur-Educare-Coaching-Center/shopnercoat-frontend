@@ -2,27 +2,59 @@ import { NextRequest, NextResponse } from 'next/server';
 import { catchAsync } from '@/lib/server/catchAsync';
 import { API_BASE_URL } from '@/constants';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export const GET = catchAsync(async (
   req: NextRequest,
   context: { params: Promise<{ examId: string }> }
 ) => {
   const { examId } = await context.params;
-  const ifNoneMatch = req.headers.get('if-none-match');
+  const token = req.cookies.get('accessToken')?.value || req.cookies.get('token')?.value;
 
-  const backendRes = await fetch(`${API_BASE_URL}/rankings/public/${examId}`, {
-    headers: {
-      ...(ifNoneMatch && { 'if-none-match': ifNoneMatch }),
-    },
-    next: { revalidate: 60 },
-  });
+  // 1. Try primary backend endpoint /rankings/public/:examId
+  try {
+    const backendRes = await fetch(`${API_BASE_URL}/rankings/public/${examId}`, {
+      headers: {
+        ...(token && { Authorization: `Bearer ${token}` }),
+      },
+      cache: 'no-store',
+    });
 
-  if (backendRes.status === 304) return new NextResponse(null, { status: 304 });
+    if (backendRes.ok) {
+      const data = await backendRes.json();
+      const list = Array.isArray(data)
+        ? data
+        : Array.isArray(data?.data)
+        ? data.data
+        : data?.data?.metadata?.topRankers || data?.metadata?.topRankers || [];
 
-  const data = await backendRes.json();
-  const res = NextResponse.json(data, { status: backendRes.status });
+      if (list && Array.isArray(list) && list.length > 0) {
+        return NextResponse.json(data);
+      }
+    }
+  } catch (err) {
+    console.warn(`BFF primary /rankings/public/${examId} failed:`, err);
+  }
 
-  const etag = backendRes.headers.get('etag');
-  if (etag) res.headers.set('etag', etag);
+  // 2. Fallback: If token is present, try /results/admin/exam/:examId
+  if (token) {
+    try {
+      const backendRes = await fetch(`${API_BASE_URL}/results/admin/exam/${examId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        cache: 'no-store',
+      });
 
-  return res;
+      if (backendRes.ok) {
+        const data = await backendRes.json();
+        return NextResponse.json(data);
+      }
+    } catch (err) {
+      console.warn(`BFF fallback /results/admin/exam/${examId} failed:`, err);
+    }
+  }
+
+  return NextResponse.json({ data: [] });
 });

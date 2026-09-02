@@ -18,7 +18,7 @@ export function DashboardLayoutShell({
   user,
 }: DashboardLayoutShellProps) {
   return (
-    <div className="relative min-h-screen w-full bg-gradient-to-br from-[#EEF3FA] via-[#F4F7FD] to-[#FAFBFD] text-slate-900 flex flex-col overflow-x-hidden">
+    <div className="relative min-h-screen w-full bg-gradient-to-br from-[#EEF3FA] via-[#F4F7FD] to-[#FAFBFD] text-slate-900 flex flex-col overflow-x-clip">
       
       {/* Subtle Medical Low-Poly Ambient Watermark Glows */}
       <div

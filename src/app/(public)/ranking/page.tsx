@@ -14,12 +14,12 @@ export const metadata = {
 };
 
 export default async function RankingPage() {
-  let initialExams: PublishedExamOption[] = [MOCK_EXAM];
-  let initialRanking: PublishedRanking | null = null;
-  const initialExamId = MOCK_EXAM.id;
+  let initialExams: PublishedExamOption[] = [];
+  let initialRanking: unknown = null;
+  let initialExamId = '';
 
   try {
-    // 1. Fetch all real exams from backend GET /exams
+    // 1. Fetch real published exams from backend GET /exams
     const examsData = await getPublicExamsForRanking();
     if (examsData && examsData.length > 0) {
       const realExams: PublishedExamOption[] = examsData.map((e) => ({
@@ -33,14 +33,19 @@ export default async function RankingPage() {
         isMock: false,
       }));
 
-      // Combine exactly 1 mock exam with all fetched backend exams
-      initialExams = [MOCK_EXAM, ...realExams];
+      initialExams = realExams;
+      initialExamId = realExams[0].id; // Select the first real backend exam by default
+    } else {
+      initialExams = [MOCK_EXAM];
+      initialExamId = MOCK_EXAM.id;
     }
   } catch (err) {
     console.warn('Could not load server exams for ranking page:', err);
+    initialExams = [MOCK_EXAM];
+    initialExamId = MOCK_EXAM.id;
   }
 
-  // If there's an initial real exam selected or rankings snapshot
+  // 2. Fetch initial ranking for the default selected real exam
   if (initialExamId && initialExamId !== MOCK_EXAM.id) {
     try {
       initialRanking = await getPublicRanking(initialExamId);
@@ -64,7 +69,7 @@ export default async function RankingPage() {
 
       <div className="container max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         
-        {/* Main Ranking Container (Hero card with 3D podium + Single-exam ranking list) */}
+        {/* Main Ranking Container (Hero card with 3D podium + Leaderboard list) */}
         <RankingContainer
           initialExams={initialExams}
           initialRanking={initialRanking}

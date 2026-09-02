@@ -18,6 +18,7 @@ const badgeVariants = cva(
         calmIndigo: "border-indigo-200/80 bg-indigo-50 text-indigo-700 font-medium",
         calmAmber: "border-amber-200/80 bg-amber-50 text-amber-800 font-medium",
         calmEmerald: "border-emerald-200/80 bg-emerald-50 text-emerald-700 font-medium",
+        calmRose: "border-rose-200/80 bg-rose-50 text-rose-700 font-medium",
       },
     },
     defaultVariants: {

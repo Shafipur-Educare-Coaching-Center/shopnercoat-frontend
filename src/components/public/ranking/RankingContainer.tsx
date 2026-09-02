@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   PublishedExamOption,
   FALLBACK_EXAMS,
@@ -8,13 +8,13 @@ import {
   MOCK_RANKERS,
   normalizeRankers,
 } from '@/data/rankingData';
-import { PublishedRanking, RankerDisplayItem } from '@/types/ranking.types';
+import { RankerDisplayItem } from '@/types/ranking.types';
 import { RankingHeroCard } from './RankingHeroCard';
 import { SingleExamRankingList } from './SingleExamRankingList';
 
 interface RankingContainerProps {
   initialExams?: PublishedExamOption[];
-  initialRanking?: PublishedRanking | null;
+  initialRanking?: unknown;
   initialExamId?: string;
 }
 
@@ -37,8 +37,16 @@ export function RankingContainer({
     if (selectedExam.isMock || selectedExam.id === MOCK_EXAM.id) {
       return MOCK_RANKERS;
     }
-    if (initialRanking?.metadata?.topRankers && initialRanking.metadata.topRankers.length > 0) {
-      return normalizeRankers(initialRanking.metadata.topRankers, false);
+
+    const raw = initialRanking as Record<string, unknown> | null;
+    const list = Array.isArray(raw)
+      ? raw
+      : Array.isArray(raw?.data)
+      ? (raw.data as unknown[])
+      : (raw?.metadata as Record<string, unknown>)?.topRankers || [];
+
+    if (list && Array.isArray(list) && list.length > 0) {
+      return normalizeRankers(list, false);
     }
     return [];
   });
@@ -46,16 +54,40 @@ export function RankingContainer({
   const [isLoading, setIsLoading] = useState(false);
   const [popperTriggerKey, setPopperTriggerKey] = useState<string | number>('init-load');
 
+  // Client-side automatic fresh fetch on mount / exam change without cache
+  useEffect(() => {
+    let active = true;
+    if (!selectedExam.isMock && selectedExam.id !== MOCK_EXAM.id) {
+      fetch(`/api/bff/rankings/public/${selectedExam.id}`, { cache: 'no-store' })
+        .then((res) => (res.ok ? res.json() : null))
+        .then((json) => {
+          if (!active || !json) return;
+          const raw = json as Record<string, unknown>;
+          const list = Array.isArray(raw)
+            ? raw
+            : Array.isArray(raw?.data)
+            ? (raw.data as unknown[])
+            : (raw?.metadata as Record<string, unknown>)?.topRankers || [];
+
+          if (list && Array.isArray(list) && list.length > 0) {
+            setRankers(normalizeRankers(list, false));
+          }
+        })
+        .catch((err) => console.warn('Fresh mount fetch ranking error:', err));
+    }
+    return () => {
+      active = false;
+    };
+  }, [selectedExam.id, selectedExam.isMock]);
+
   // Handle Exam Selection Change
   const handleSelectExam = async (exam: PublishedExamOption) => {
     if (exam.id === selectedExam.id) return;
     
     setSelectedExam(exam);
     setIsLoading(true);
-    // Trigger celebratory poppers animation upon exam switch
     setPopperTriggerKey(`exam-${exam.id}-${Date.now()}`);
 
-    // If switching to mock sample exam, immediately set mock rankers
     if (exam.isMock || exam.id === MOCK_EXAM.id) {
       setRankers(MOCK_RANKERS);
       setIsLoading(false);
@@ -63,13 +95,18 @@ export function RankingContainer({
     }
 
     try {
-      // Fetch public ranking snapshot for the chosen backend exam: /ranking/public/:examId
-      const res = await fetch(`/api/bff/rankings/public/${exam.id}`);
+      const res = await fetch(`/api/bff/rankings/public/${exam.id}`, { cache: 'no-store' });
       if (res.ok) {
         const json = await res.json();
-        const topRankers = json?.data?.metadata?.topRankers;
-        if (topRankers && Array.isArray(topRankers) && topRankers.length > 0) {
-          setRankers(normalizeRankers(topRankers, false));
+        const raw = json as Record<string, unknown>;
+        const list = Array.isArray(raw)
+          ? raw
+          : Array.isArray(raw?.data)
+          ? (raw.data as unknown[])
+          : (raw?.metadata as Record<string, unknown>)?.topRankers || [];
+
+        if (list && Array.isArray(list) && list.length > 0) {
+          setRankers(normalizeRankers(list, false));
         } else {
           setRankers([]);
         }
@@ -84,12 +121,11 @@ export function RankingContainer({
     }
   };
 
-  // Top 3 students for the 3D Podium pillars (dynamically updates based on selected exam's rankers)
   const topRankers = rankers.slice(0, 3);
 
   return (
-    <div className="w-full flex flex-col items-center">
-      {/* 1. Top Hero Card: "The best students" + Dropdown Selector + 3D Podium & Poppers */}
+    <div className="w-full flex flex-col items-center select-none">
+      {/* 1. Top Hero Card: Dropdown Selector + 3D Podium & Poppers */}
       <RankingHeroCard
         exams={exams}
         selectedExam={selectedExam}

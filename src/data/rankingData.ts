@@ -1,4 +1,4 @@
-import { RankerDisplayItem, TopRanker } from '@/types/ranking.types';
+import { RankerDisplayItem } from '@/types/ranking.types';
 
 export interface PublishedExamOption {
   id: string;
@@ -11,7 +11,7 @@ export interface PublishedExamOption {
   isMock?: boolean;
 }
 
-// Exactly 1 Mock Exam for Demo / Standalone Testing when results have not been published
+// Fallback Mock Exam for Standalone Testing
 export const MOCK_EXAM: PublishedExamOption = {
   id: 'mock-mbbs-may-2024',
   title: 'MBBS Mock Test - May 2024 (Sample)',
@@ -60,88 +60,66 @@ export const MOCK_RANKERS: RankerDisplayItem[] = [
     tags: ['Mock Exams'],
     initials: 'MH',
   },
-  {
-    id: 'ranker-4',
-    position: 4,
-    fullName: 'T. Ahmed',
-    rollNumber: 4528644,
-    photoUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=256&q=80',
-    obtainedMarks: 89.4,
-    percentage: 89.4,
-    remarks: 'Strong results in Biology and Chemistry core modules.',
-    tags: ['Biology', 'Chemistry'],
-    initials: 'TA',
-  },
-  {
-    id: 'ranker-5',
-    position: 5,
-    fullName: 'F. Akter',
-    rollNumber: 4528645,
-    photoUrl: null, // Fallback initials square matching mockup "FA"
-    obtainedMarks: 88.7,
-    percentage: 88.7,
-    remarks: 'Top 5% in National Pre-Med Qualifier examinations.',
-    tags: ['Qualifier'],
-    initials: 'FA',
-  },
 ];
 
 export const FALLBACK_EXAMS: PublishedExamOption[] = [MOCK_EXAM];
 
-// Helper: Normalize incoming backend rankers from /ranking/public/:examId
+/**
+ * Helper: Normalize incoming backend rankers from GET /rankings/public/:examId
+ * Handles flat structure AND nested student objects ({ student: { fullName, photoUrl, rollNumber, collegeName } })
+ */
 export function normalizeRankers(
-  backendRankers?: TopRanker[] | null,
+  rawList?: unknown[] | null,
   isMockExam = false
 ): RankerDisplayItem[] {
   if (isMockExam) {
     return MOCK_RANKERS;
   }
 
-  if (backendRankers && backendRankers.length > 0) {
-    return backendRankers.map((r, index) => {
-      const pos = r.position || index + 1;
-      const initials = r.fullName
-        ? r.fullName
+  if (rawList && Array.isArray(rawList) && rawList.length > 0) {
+    return rawList.map((rawItem: unknown, index: number) => {
+      const item = (rawItem && typeof rawItem === 'object' ? rawItem : {}) as Record<string, unknown>;
+      const student = (item.student && typeof item.student === 'object' ? item.student : {}) as Record<string, unknown>;
+      const fullName = (item.fullName as string) || (student.fullName as string) || 'Candidate';
+      const rollNumber = (item.rollNumber as number) || (student.rollNumber as number) || 'N/A';
+      const photoUrl = (item.photoUrl as string) || (student.photoUrl as string) || null;
+      const collegeName = (student.collegeName as string) || (item.collegeName as string) || '';
+      const pos = (item.position as number) || index + 1;
+      const obtainedMarks = (item.obtainedMarks as number) ?? 0;
+      const pct = item.percentage ? Number(Number(item.percentage).toFixed(1)) : 0;
+
+      const initials = fullName
+        ? fullName
             .split(' ')
             .filter(Boolean)
-            .map((p) => p[0])
+            .map((p: string) => p[0])
             .slice(0, 2)
             .join('')
             .toUpperCase()
         : 'ST';
 
-      const defaultRemarks =
-        pos === 1
-          ? 'Outstanding performance in Clinical Anatomy and General Medicine.'
-          : pos === 2
-          ? 'Exceptional aptitude in Pathology and Pharmacology.'
-          : pos === 3
-          ? 'Consistent high performer in Mock Exams nationwide.'
-          : pos === 4
-          ? 'Strong results in core medical examination modules.'
-          : 'Top tiered score in National Qualifier examinations.';
+      const defaultRemarks = collegeName
+        ? `Excellence from ${collegeName}`
+        : pos === 1
+        ? 'Outstanding performance in Medical Admission Model Test.'
+        : pos === 2
+        ? 'Exceptional aptitude in core subjects.'
+        : pos === 3
+        ? 'High performer in national qualifier examination.'
+        : 'Top score candidate.';
 
-      const defaultTags =
-        pos === 1
-          ? ['Anatomy', 'Medicine']
-          : pos === 2
-          ? ['Pathology']
-          : pos === 3
-          ? ['Mock Exams']
-          : pos === 4
-          ? ['Biology', 'Chemistry']
-          : ['Qualifier'];
+      const defaultTags = collegeName ? [collegeName] : ['Top Ranker'];
 
       return {
-        id: r.studentId || `ranker-${pos}`,
+        id: (item.id as string) || (item.studentId as string) || `ranker-${pos}`,
         position: pos,
-        fullName: r.fullName,
-        rollNumber: r.rollNumber,
-        photoUrl: r.photoUrl || null,
-        obtainedMarks: r.obtainedMarks,
-        percentage: Number(r.percentage.toFixed(1)),
-        remarks: r.remarks || defaultRemarks,
-        tags: r.tags && r.tags.length > 0 ? r.tags : defaultTags,
+        fullName,
+        rollNumber,
+        photoUrl,
+        obtainedMarks,
+        percentage: pct,
+        remarks: (item.remarks as string) || defaultRemarks,
+        tags: Array.isArray(item.tags) && item.tags.length > 0 ? (item.tags as string[]) : defaultTags,
         initials,
       };
     });
