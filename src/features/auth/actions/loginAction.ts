@@ -8,12 +8,18 @@ export async function loginAction(values: LoginFormValues) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      mobileNumber: values.identifier, // API handles mobile/email/roll here
+      mobileNumber: values.identifier,
       password: values.password
     }),
   });
   const data = await res.json();
-  if (!res.ok) throw new Error(data.message || 'Login failed');
+  
+  if (!res.ok) {
+    if (data.errors && data.errors.length > 0) {
+      throw new Error(data.errors.map((e: any) => `${e.field}: ${e.message}`).join(', '));
+    }
+    throw new Error(data.message || 'Login failed');
+  }
   
   const cookieStore = await cookies();
   cookieStore.set('accessToken', data.data.accessToken, { httpOnly: true, secure: true, path: '/' });
