@@ -31,7 +31,7 @@ function TooltipTrigger({ asChild, children, ...props }: TooltipTriggerProps) {
 
 function TooltipContent({
   className,
-  sideOffset = 6,
+  sideOffset = 8,
   children,
   side = 'right',
   ...props
@@ -41,11 +41,11 @@ function TooltipContent({
 }) {
   return (
     <TooltipPrimitive.Portal>
-      <TooltipPrimitive.Positioner side={side} sideOffset={sideOffset}>
+      <TooltipPrimitive.Positioner className="z-[9999]" side={side} sideOffset={sideOffset}>
         <TooltipPrimitive.Popup
           data-slot="tooltip-content"
           className={cn(
-            'z-50 overflow-hidden rounded-xl bg-slate-900/95 px-3 py-1.5 text-xs font-medium text-white shadow-lg backdrop-blur-md animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 border border-slate-700/60 select-none pointer-events-none',
+            'z-[9999] overflow-hidden rounded-xl bg-slate-900/95 px-3 py-1.5 text-xs font-medium text-white shadow-2xl backdrop-blur-md animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 border border-slate-700/80 select-none pointer-events-none',
             className
           )}
           {...props}

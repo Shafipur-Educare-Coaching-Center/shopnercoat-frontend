@@ -18,7 +18,7 @@ export function DashboardLayoutShell({
   user,
 }: DashboardLayoutShellProps) {
   return (
-    <div className="relative min-h-screen w-full bg-gradient-to-br from-[#EEF3FA] via-[#F4F7FD] to-[#FAFBFD] text-slate-900 flex overflow-x-hidden">
+    <div className="relative min-h-screen w-full bg-gradient-to-br from-[#EEF3FA] via-[#F4F7FD] to-[#FAFBFD] text-slate-900 flex flex-col overflow-x-hidden">
       
       {/* Subtle Medical Low-Poly Ambient Watermark Glows */}
       <div
@@ -30,18 +30,19 @@ export function DashboardLayoutShell({
         aria-hidden="true"
       />
 
-      {/* 1. Floating Polymorphic Sidebar Rail (Desktop Viewport) */}
-      <div className="hidden md:flex pl-4 lg:pl-6 py-4 lg:py-6 shrink-0 sticky top-0 h-screen">
-        <FloatingSidebar role={role} user={user} />
-      </div>
+      {/* 1. Full-Width Sticky Top Header (Logo + Dashboard Title + Role Badge + Logout Button in SAME Row) */}
+      <DashboardHeader role={role} user={user} />
 
-      {/* 2. Main Content Canvas */}
-      <div className="flex-1 min-w-0 flex flex-col p-4 sm:p-5 lg:p-6 pb-24 md:pb-8 relative z-10">
-        {/* Dynamic Calm Header with Date Range Capsule & Controls */}
-        <DashboardHeader role={role} user={user} />
+      {/* 2. Body Canvas: Fixed Floating Rail on Left + Scrollable Content Canvas */}
+      <div className="w-full flex-1 flex relative">
+        
+        {/* Fixed Floating Navigation Rail directly beneath the header logo */}
+        <div className="hidden md:flex fixed top-[84px] left-4 lg:left-6 z-40">
+          <FloatingSidebar role={role} user={user} />
+        </div>
 
-        {/* Dynamic Page Children Content */}
-        <main className="flex-1 w-full max-w-7xl">
+        {/* Main Content Area */}
+        <main className="flex-1 min-w-0 md:pl-24 lg:pl-28 p-4 sm:p-6 lg:p-8 pb-24 md:pb-12">
           {children}
         </main>
       </div>

@@ -40,11 +40,11 @@ function DropdownMenuContent({
 }) {
   return (
     <MenuPrimitive.Portal>
-      <MenuPrimitive.Positioner side={side} sideOffset={sideOffset} align={align}>
+      <MenuPrimitive.Positioner className="z-[9999]" side={side} sideOffset={sideOffset} align={align}>
         <MenuPrimitive.Popup
           data-slot="dropdown-menu-content"
           className={cn(
-            'z-50 min-w-[12rem] overflow-hidden rounded-2xl border border-slate-200/80 bg-white/95 p-1.5 text-slate-800 shadow-[0_12px_36px_rgba(20,40,90,0.12)] backdrop-blur-xl animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 outline-hidden',
+            'z-[9999] min-w-[12rem] overflow-hidden rounded-2xl border border-slate-200/80 bg-white/95 p-1.5 text-slate-800 shadow-[0_12px_36px_rgba(20,40,90,0.12)] backdrop-blur-xl animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 outline-hidden',
             className
           )}
           {...props}

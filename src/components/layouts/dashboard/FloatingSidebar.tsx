@@ -11,7 +11,6 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { MedicalLogo } from '@/components/common/MedicalLogo';
 import {
   ADMIN_NAV_ITEMS,
   STUDENT_NAV_ITEMS,
@@ -32,19 +31,10 @@ export function FloatingSidebar({ role, user }: FloatingSidebarProps) {
     <TooltipProvider delay={100}>
       <aside
         aria-label="Sidebar Navigation"
-        className="hidden md:flex flex-col items-center gap-3.5 py-4 shrink-0 select-none z-30"
+        className="hidden md:flex flex-col items-center shrink-0 select-none z-40"
       >
-        {/* 1. Floating Brand Logo Pill (Top Squircle) */}
-        <Link
-          href={role === 'ADMIN' ? '/dashboard/admin' : '/dashboard/student'}
-          title="ShopnerCoat Dashboard"
-          className="size-12 sm:size-13 rounded-2xl bg-white shadow-[0_8px_24px_rgba(20,40,90,0.06)] border border-white/90 flex items-center justify-center transition-all hover:scale-105 active:scale-95 group"
-        >
-          <MedicalLogo className="scale-90 group-hover:scale-95 transition-transform" />
-        </Link>
-
-        {/* 2. Main Floating Polymorphic Navigation Rail */}
-        <div className="w-13 sm:w-14 rounded-[28px] bg-white/90 backdrop-blur-xl border border-white/80 shadow-[0_12px_36px_rgba(20,40,90,0.07)] p-1.5 sm:p-2 flex flex-col items-center gap-2">
+        {/* Main Floating Polymorphic Navigation Rail */}
+        <div className="w-13 sm:w-14 rounded-[28px] bg-white/95 backdrop-blur-xl border border-white/80 shadow-[0_12px_36px_rgba(20,40,90,0.07)] p-1.5 sm:p-2 flex flex-col items-center gap-2">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = item.exact
