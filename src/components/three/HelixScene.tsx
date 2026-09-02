@@ -1,4 +1,5 @@
-﻿'use client';
+'use client';
+
 import { Canvas, useFrame } from "@react-three/fiber";
 import { Environment, Lightformer } from "@react-three/drei";
 import { useMemo, useRef } from "react";
@@ -10,6 +11,7 @@ const PALE = "#bfe4e6";
 
 function Helix() {
   const group = useRef<THREE.Group>(null);
+  const timeRef = useRef(0);
 
   const nodes = useMemo(() => {
     const items: { pos: [number, number, number]; strand: 0 | 1; t: number }[] = [];
@@ -38,12 +40,26 @@ function Helix() {
     return items;
   }, []);
 
-  useFrame((state, delta) => {
+  useFrame((_, delta) => {
     const dt = Math.min(delta, 0.05);
+    timeRef.current += dt;
+    const t = timeRef.current;
+
     if (!group.current) return;
-    group.current.rotation.y += dt * 0.32;
-    const pulse = 1 + Math.sin(state.clock.elapsedTime * 1.6) * 0.015;
-    group.current.scale.setScalar(pulse);
+
+    // 1. Continuous smooth 3D rotation
+    group.current.rotation.y += dt * 0.45;
+
+    // 2. Dynamic multi-harmonic biological pulse (heartbeat contraction & expansion)
+    const primaryPulse = Math.sin(t * 2.2) * 0.06;
+    const secondaryPulse = Math.sin(t * 4.4) * 0.03;
+    const scale = 1 + primaryPulse + secondaryPulse;
+    group.current.scale.set(scale, scale, scale);
+
+    // 3. Dynamic 3D floating and organic tilt motion
+    group.current.position.y = Math.sin(t * 1.5) * 0.22;
+    group.current.rotation.x = 0.1 + Math.sin(t * 0.9) * 0.05;
+    group.current.rotation.z = 0.14 + Math.cos(t * 1.2) * 0.04;
   });
 
   return (
@@ -55,13 +71,21 @@ function Helix() {
             color={n.strand === 0 ? TEAL : DEEP}
             roughness={0.25}
             metalness={0.35}
+            emissive={n.strand === 0 ? "#0d9488" : "#0f766e"}
+            emissiveIntensity={0.15}
           />
         </mesh>
       ))}
       {rungs.map((r, i) => (
         <mesh key={`r-${i}`} position={[0, r.y, 0]} rotation={[0, -r.angle, Math.PI / 2]}>
           <cylinderGeometry args={[0.048, 0.048, 2.8, 10]} />
-          <meshStandardMaterial color={PALE} roughness={0.4} metalness={0.1} />
+          <meshStandardMaterial
+            color={PALE}
+            roughness={0.4}
+            metalness={0.1}
+            emissive="#bfe4e6"
+            emissiveIntensity={0.1}
+          />
         </mesh>
       ))}
     </group>
@@ -76,13 +100,13 @@ export default function HelixScene() {
       gl={{ antialias: true, alpha: true }}
       style={{ pointerEvents: "none" }}
     >
-      <ambientLight intensity={0.8} />
-      <directionalLight position={[4, 6, 5]} intensity={1.3} />
-      <directionalLight position={[-5, -2, -4]} intensity={0.5} color={PALE} />
+      <ambientLight intensity={0.85} />
+      <directionalLight position={[4, 6, 5]} intensity={1.4} />
+      <directionalLight position={[-5, -2, -4]} intensity={0.6} color={PALE} />
       <Environment>
-        <Lightformer intensity={1.6} position={[0, 6, 2]} scale={[8, 8, 1]} />
+        <Lightformer intensity={1.8} position={[0, 6, 2]} scale={[8, 8, 1]} />
         <Lightformer
-          intensity={0.9}
+          intensity={1.0}
           color="#bfe4e6"
           position={[-6, 1, -2]}
           rotation-y={Math.PI / 2}
