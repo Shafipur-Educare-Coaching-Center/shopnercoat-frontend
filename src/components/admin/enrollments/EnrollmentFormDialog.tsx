@@ -11,11 +11,13 @@ import {
 } from '@/features/admin/enrollments/schemas/enrollment-admin.schema';
 import { createEnrollmentAction } from '@/features/admin/enrollments/actions/createEnrollmentAction';
 import { Exam, ExamEnrollmentAdmin } from '@/types/exam.types';
+import { Student } from '@/types/student.types';
 
 interface EnrollmentFormDialogProps {
   isOpen: boolean;
   onClose: () => void;
   exams: Exam[];
+  students?: Student[];
   onSuccess?: (newEnrollment?: ExamEnrollmentAdmin) => void;
 }
 
@@ -23,6 +25,7 @@ export function EnrollmentFormDialog({
   isOpen,
   onClose,
   exams,
+  students = [],
   onSuccess,
 }: EnrollmentFormDialogProps) {
   const [isPending, startTransition] = useTransition();
@@ -35,7 +38,7 @@ export function EnrollmentFormDialog({
   } = useForm<EnrollmentAdminFormValues>({
     resolver: zodResolver(enrollmentAdminFormSchema) as Resolver<EnrollmentAdminFormValues>,
     defaultValues: {
-      studentId: '',
+      studentId: students[0]?.id || '',
       examId: exams[0]?.id || '',
       status: 'ENROLLED',
     },
@@ -108,17 +111,33 @@ export function EnrollmentFormDialog({
             )}
           </div>
 
-          {/* Student ID / Roll Number */}
+          {/* Student Candidate Selector */}
           <div>
             <label className="font-semibold text-slate-700 block mb-1">
-              Candidate Student ID / Roll Number *
+              Target Candidate Student *
             </label>
-            <input
-              type="text"
-              placeholder="e.g. std-uuid-001 or 4528647"
-              {...register('studentId')}
-              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono text-slate-900 outline-hidden focus:ring-2 focus:ring-teal-500"
-            />
+            {students.length > 0 ? (
+              <select
+                {...register('studentId')}
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 outline-hidden focus:ring-2 focus:ring-teal-500 font-mono"
+              >
+                {students.map((st) => (
+                  <option key={st.id} value={st.id}>
+                    [Roll #{st.rollNumber}] {st.fullName} ({st.collegeName || 'Student'})
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <input
+                type="text"
+                placeholder="Paste Student UUID (e.g. 376a8850-fef7-404c-80e0-5af31fab4515)"
+                {...register('studentId')}
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono text-slate-900 outline-hidden focus:ring-2 focus:ring-teal-500"
+              />
+            )}
+            <p className="text-[10px] text-slate-400 mt-1">
+              Backend expects candidate Student UUID.
+            </p>
             {errors.studentId && (
               <p className="text-rose-500 text-[11px] mt-1">{errors.studentId.message}</p>
             )}

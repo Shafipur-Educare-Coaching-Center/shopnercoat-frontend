@@ -12,16 +12,19 @@ import { EnrollmentFormDialog } from './EnrollmentFormDialog';
 import { EnrollmentDetailDrawer } from './EnrollmentDetailDrawer';
 import { EnrollmentDeleteDialog } from './EnrollmentDeleteDialog';
 import { updateEnrollmentAction } from '@/features/admin/enrollments/actions/updateEnrollmentAction';
+import { Student } from '@/types/student.types';
 import { triggerAdmitCardsAction } from '@/features/admin/enrollments/actions/triggerAdmitCardsAction';
 
 interface EnrollmentDirectoryContainerProps {
   initialEnrollments: ExamEnrollmentAdmin[];
   exams: Exam[];
+  students?: Student[];
 }
 
 export function EnrollmentDirectoryContainer({
   initialEnrollments,
   exams,
+  students = [],
 }: EnrollmentDirectoryContainerProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -178,6 +181,7 @@ export function EnrollmentDirectoryContainer({
       <EnrollmentFormDialog
         isOpen={isCreateOpen}
         exams={exams}
+        students={students}
         onClose={() => setIsCreateOpen(false)}
         onSuccess={handleEnrollmentCreated}
       />

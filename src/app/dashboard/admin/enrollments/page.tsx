@@ -3,6 +3,7 @@ import { Metadata } from 'next';
 import { getAccessToken } from '@/lib/server/getTokens';
 import { getAdminEnrollments } from '@/server/enrollment.service';
 import { getExams } from '@/server/exam.service';
+import { getAdminStudentList } from '@/server/student.service';
 import { EnrollmentDirectoryContainer } from '@/components/admin/enrollments';
 
 export const metadata: Metadata = {
@@ -26,23 +27,26 @@ export default async function AdminEnrollmentsPage({ searchParams }: Enrollments
   const token = await getAccessToken();
   const params = await searchParams;
 
-  const [enrollmentsRes, examsRes] = await Promise.all([
+  const [enrollmentsRes, examsRes, studentsRes] = await Promise.all([
     getAdminEnrollments(token || '', {
       search: params.search,
       examId: params.examId,
       status: params.status,
     }),
     getExams(),
+    getAdminStudentList(token || '', 1, 100),
   ]);
 
   const enrollments = enrollmentsRes.data || [];
   const exams = examsRes.data || [];
+  const students = studentsRes.data || [];
 
   return (
     <div className="w-full">
       <EnrollmentDirectoryContainer
         initialEnrollments={enrollments}
         exams={exams}
+        students={students}
       />
     </div>
   );

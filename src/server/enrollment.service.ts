@@ -15,44 +15,26 @@ export async function getAdminEnrollments(
   token: string,
   params?: EnrollmentFilterParams
 ): Promise<ApiResponse<ExamEnrollmentAdmin[]>> {
-  try {
-    const endpoint = params?.examId && params.examId !== 'ALL'
+  const endpoint =
+    params?.examId && params.examId !== 'ALL'
       ? `/enrollments/admin/exam/${params.examId}`
       : '/enrollments/admin/list';
 
-    const res = await serverFetch<ExamEnrollmentAdmin[]>(endpoint, {
-      token,
-      params: {
-        search: params?.search,
-        status: params?.status !== 'ALL' ? params?.status : undefined,
-        page: params?.page,
-        limit: params?.limit,
-      },
-      cache: 'no-store',
-    });
-
-    if (res && res.data && Array.isArray(res.data)) {
-      return res;
-    }
-  } catch (err) {
-    console.error('GET admin enrollments failed:', err);
-  }
-
-  return {
-    statusCode: 200,
-    success: true,
-    data: [],
-    meta: {
-      page: params?.page || 1,
-      limit: params?.limit || 20,
-      total: 0,
-      totalPages: 1,
+  return serverFetch<ExamEnrollmentAdmin[]>(endpoint, {
+    token,
+    params: {
+      search: params?.search,
+      status: params?.status !== 'ALL' ? params?.status : undefined,
+      page: params?.page,
+      limit: params?.limit,
     },
-  };
+    cache: 'no-store',
+  });
 }
 
 /**
  * POST /enrollments/admin/enroll - Manual Candidate Enrollment (Admin Only)
+ * Executes live REST call directly to backend.
  */
 export async function adminCreateEnrollment(
   token: string,
@@ -61,7 +43,11 @@ export async function adminCreateEnrollment(
   const res = await serverFetch<ExamEnrollmentAdmin>('/enrollments/admin/enroll', {
     token,
     method: 'POST',
-    body: JSON.stringify(data),
+    body: JSON.stringify({
+      studentId: data.studentId.trim(),
+      examId: data.examId.trim(),
+      status: data.status || 'ENROLLED',
+    }),
     cache: 'no-store',
   });
   return res.data;
@@ -127,16 +113,9 @@ export async function adminTriggerBatchAdmitCards(
  * GET /enrollments/me - Get candidate enrollments (Student Portal)
  */
 export async function getMyEnrollments(token: string): Promise<ExamEnrollmentAdmin[]> {
-  try {
-    const res = await serverFetch<ExamEnrollmentAdmin[]>('/enrollments/me', {
-      token,
-      cache: 'no-store',
-    });
-    if (res && res.data && Array.isArray(res.data)) {
-      return res.data;
-    }
-  } catch (err) {
-    console.error('GET /enrollments/me failed:', err);
-  }
-  return [];
+  const res = await serverFetch<ExamEnrollmentAdmin[]>('/enrollments/me', {
+    token,
+    cache: 'no-store',
+  });
+  return res.data;
 }

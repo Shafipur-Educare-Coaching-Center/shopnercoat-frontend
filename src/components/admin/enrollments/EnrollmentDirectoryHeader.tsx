@@ -45,10 +45,10 @@ export function EnrollmentDirectoryHeader({
 
   return (
     <div className="w-full flex flex-col gap-4 mb-6 select-none">
-      
+
       {/* 1. Top Controls Bar */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-        
+
         {/* Left: Title & Live Count Badge */}
         <div>
           <h2 className="font-heading font-black text-xl sm:text-2xl text-slate-900 tracking-tight flex items-center gap-2">
@@ -64,7 +64,7 @@ export function EnrollmentDirectoryHeader({
 
         {/* Right: Search + Exam Filter + Action Buttons */}
         <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
-          
+
           {/* Search Box */}
           <div className="relative flex-1 sm:w-64 min-w-[200px]">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
@@ -96,11 +96,10 @@ export function EnrollmentDirectoryHeader({
             <button
               type="button"
               onClick={() => onViewModeChange('GRID')}
-              className={`p-1.5 rounded-xl transition-all cursor-pointer ${
-                viewMode === 'GRID'
+              className={`p-1.5 rounded-xl transition-all cursor-pointer ${viewMode === 'GRID'
                   ? 'bg-white text-teal-700 shadow-xs font-bold'
                   : 'text-slate-500 hover:text-slate-800'
-              }`}
+                }`}
               title="Grid Cards View"
             >
               <LayoutGrid className="size-4" />
@@ -109,11 +108,10 @@ export function EnrollmentDirectoryHeader({
             <button
               type="button"
               onClick={() => onViewModeChange('TABLE')}
-              className={`p-1.5 rounded-xl transition-all cursor-pointer ${
-                viewMode === 'TABLE'
+              className={`p-1.5 rounded-xl transition-all cursor-pointer ${viewMode === 'TABLE'
                   ? 'bg-white text-teal-700 shadow-xs font-bold'
                   : 'text-slate-500 hover:text-slate-800'
-              }`}
+                }`}
               title="Table View"
             >
               <TableIcon className="size-4" />
@@ -151,7 +149,7 @@ export function EnrollmentDirectoryHeader({
             className="inline-flex items-center gap-1.5 px-4 py-2 rounded-2xl bg-teal-600 hover:bg-teal-500 text-white font-bold text-xs shadow-md transition-all active:scale-95 cursor-pointer shrink-0"
           >
             <Plus className="size-4 text-white" />
-            <span>+ Manual Enroll</span>
+            <span>Manual Enroll</span>
           </button>
 
         </div>
@@ -165,11 +163,10 @@ export function EnrollmentDirectoryHeader({
             key={tab.id}
             type="button"
             onClick={() => onStatusChange(tab.id)}
-            className={`px-3.5 py-1.5 rounded-2xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
-              statusFilter === tab.id
+            className={`px-3.5 py-1.5 rounded-2xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${statusFilter === tab.id
                 ? 'bg-[#37447E] text-white shadow-xs'
                 : 'bg-white/80 hover:bg-white text-slate-600 border border-slate-200/70'
-            }`}
+              }`}
           >
             {tab.label}
           </button>

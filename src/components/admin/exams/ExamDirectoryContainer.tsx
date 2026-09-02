@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Exam } from '@/types/exam.types';
 import { getExamCentresAction } from '@/features/admin/exams/actions/examCentreActions';
+import { getExamEnrollmentsCountAction } from '@/features/admin/enrollments/actions/getExamEnrollmentsCountAction';
 import { ExamDirectoryHeader } from './ExamDirectoryHeader';
 import { ExamStatsBanner } from './ExamStatsBanner';
 import { ExamCardGrid } from './ExamCardGrid';
@@ -23,18 +24,32 @@ export function ExamDirectoryContainer({ initialExams }: ExamDirectoryContainerP
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
-  // Local state for live exams & dynamic centre population
+  // Local state for live exams, dynamic centre & enrollment hydration
   const [exams, setExams] = useState<Exam[]>(initialExams);
 
-  // Sync state with initialExams and fetch centres for exams
+  // Sync state with initialExams and fetch centres & live enrollment counts
   useEffect(() => {
     let active = true;
 
     initialExams.forEach((exam) => {
+      // 1. Live Centre Hydration
       getExamCentresAction(exam.id).then((res) => {
         if (active && res.success && res.centres && res.centres.length > 0) {
           setExams((prev) =>
             prev.map((e) => (e.id === exam.id ? { ...e, centres: res.centres } : e))
+          );
+        }
+      });
+
+      // 2. Live Enrollment Count Hydration
+      getExamEnrollmentsCountAction(exam.id).then((res) => {
+        if (active && res.success && res.count !== undefined) {
+          setExams((prev) =>
+            prev.map((e) =>
+              e.id === exam.id
+                ? { ...e, _count: { ...e._count, enrollments: res.count } }
+                : e
+            )
           );
         }
       });
@@ -89,7 +104,6 @@ export function ExamDirectoryContainer({ initialExams }: ExamDirectoryContainerP
   };
 
   const handleExamDeleted = (deletedExamId: string) => {
-    // Instant client-side state removal for 0ms latency UI update
     setExams((prev) => prev.filter((e) => e.id !== deletedExamId));
     startTransition(() => {
       router.refresh();
