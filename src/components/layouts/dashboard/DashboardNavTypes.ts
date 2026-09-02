@@ -8,7 +8,6 @@ import {
   Award,
   Trophy,
   Megaphone,
-  UserCheck,
   Settings,
   FileCheck,
   UserCircle,
@@ -84,12 +83,6 @@ export const ADMIN_NAV_ITEMS: DashboardNavItem[] = [
     label: 'Announcements Manager',
     href: '/dashboard/admin/announcements',
     icon: Megaphone,
-  },
-  {
-    id: 'admin-profile',
-    label: 'Own Profile',
-    href: '/dashboard/admin/profile',
-    icon: UserCheck,
   },
   {
     id: 'admin-settings',

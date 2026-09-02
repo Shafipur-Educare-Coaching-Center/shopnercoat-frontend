@@ -4,7 +4,6 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Bell } from 'lucide-react';
 import {
   Tooltip,
   TooltipContent,
@@ -16,14 +15,13 @@ import {
   STUDENT_NAV_ITEMS,
   DashboardUserSummary,
 } from './DashboardNavTypes';
-import { UserProfileDropdown } from './UserProfileDropdown';
 
 interface FloatingSidebarProps {
   role: 'ADMIN' | 'STUDENT';
   user?: DashboardUserSummary;
 }
 
-export function FloatingSidebar({ role, user }: FloatingSidebarProps) {
+export function FloatingSidebar({ role }: FloatingSidebarProps) {
   const pathname = usePathname();
   const navItems = role === 'ADMIN' ? ADMIN_NAV_ITEMS : STUDENT_NAV_ITEMS;
 
@@ -70,30 +68,6 @@ export function FloatingSidebar({ role, user }: FloatingSidebarProps) {
               </Tooltip>
             );
           })}
-
-          {/* Divider */}
-          <div className="w-6 h-px bg-slate-200/80 my-1" />
-
-          {/* Notification Button */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                type="button"
-                className="relative size-10 sm:size-10.5 rounded-2xl flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100/80 transition-all active:scale-95 cursor-pointer outline-hidden focus-visible:ring-2 focus-visible:ring-teal-500"
-              >
-                <Bell className="size-5" />
-                <span className="absolute top-2 right-2 size-2 bg-rose-500 rounded-full ring-2 ring-white animate-pulse" />
-              </button>
-            </TooltipTrigger>
-            <TooltipContent side="right" sideOffset={12}>
-              <span>Notifications</span>
-            </TooltipContent>
-          </Tooltip>
-
-          {/* User Profile Avatar Capsule */}
-          <div className="pt-1">
-            <UserProfileDropdown user={user} />
-          </div>
         </div>
       </aside>
     </TooltipProvider>

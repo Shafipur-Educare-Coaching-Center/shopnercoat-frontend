@@ -1,4 +1,4 @@
-﻿import { ReactNode } from 'react';
+import { ReactNode } from 'react';
 import { PublicNavbar } from '@/components/layouts/PublicNavbar';
 import { PublicFooter } from '@/components/layouts/PublicFooter';
 import { AnnouncementBar } from '@/components/public/AnnouncementBar';
@@ -10,18 +10,13 @@ export default async function PublicLayout({ children }: { children: ReactNode }
   try {
     announcements = await getPublicAnnouncements();
   } catch (e) {
+    console.warn('Failed to load public announcements in layout:', e);
   }
-  
-  const urgent = announcements?.find(a => a.status === 'PUBLISHED');
-  const announcementMessage = urgent ? urgent.title : 'Registration for 2024-25 session is now open! Limited seats available.';
 
   return (
     <div className="flex min-h-screen flex-col bg-background relative font-sans">
-      {/* Top Banner (Responsive & Dismissible) */}
-      <AnnouncementBar 
-        id={urgent ? urgent.id : 'default-urgent'} 
-        message={announcementMessage} 
-      />
+      {/* Top Banner (Responsive, Auto-rotating & Dismissible with Live Backend Announcements) */}
+      <AnnouncementBar announcements={announcements} />
       
       {/* Floating Navbar Container (Floats over the page content without white gap) */}
       <div className="sticky top-2.5 md:top-4 z-50 w-full pointer-events-none -mb-14 md:-mb-16">
