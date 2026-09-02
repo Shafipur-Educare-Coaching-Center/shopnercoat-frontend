@@ -1,4 +1,4 @@
-﻿import { z } from 'zod';
+import { z } from 'zod';
 
 export const registerSchema = z.object({
   fullName: z.string().min(3, "Full name must be at least 3 characters").max(100),
@@ -23,3 +23,13 @@ export const verifyOtpSchema = z.object({
 });
 
 export type VerifyOtpFormValues = z.infer<typeof verifyOtpSchema>;
+
+export const adminLoginSchema = z.object({
+  mobileNumber: z.string().min(1, "Mobile number or identifier is required"),
+  password: z.string().min(1, "Password is required"),
+  rememberMe: z.boolean(),
+});
+
+export type AdminLoginFormValues = z.infer<typeof adminLoginSchema>;
+
+

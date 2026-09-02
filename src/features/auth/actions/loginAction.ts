@@ -1,4 +1,4 @@
-﻿'use server';
+'use server';
 import { cookies } from 'next/headers';
 import { API_BASE_URL } from '@/constants';
 import { LoginFormValues } from '@/schemas/auth.schema';
@@ -15,8 +15,8 @@ export async function loginAction(values: LoginFormValues) {
   const data = await res.json();
   
   if (!res.ok) {
-    if (data.errors && data.errors.length > 0) {
-      throw new Error(data.errors.map((e: any) => `${e.field}: ${e.message}`).join(', '));
+    if (data.errors && Array.isArray(data.errors) && data.errors.length > 0) {
+      throw new Error(data.errors.map((e: { field?: string; message: string }) => e.message || `${e.field}: error`).join(', '));
     }
     throw new Error(data.message || 'Login failed');
   }
