@@ -14,7 +14,7 @@ export async function registerAction(values: RegisterFormValues) {
   const parsed = registerSchema.safeParse(values);
   if (!parsed.success) {
     const errorMsg = parsed.error.issues.map((i) => i.message).join(', ');
-    throw new Error(errorMsg || 'Invalid registration data');
+    return { success: false, error: errorMsg || 'Invalid registration data' };
   }
 
   const normalizedMobile = normalizeMobileNumber(parsed.data.mobileNumber);
@@ -27,49 +27,56 @@ export async function registerAction(values: RegisterFormValues) {
     ...(parsed.data.email?.trim() ? { email: parsed.data.email.trim().toLowerCase() } : {}),
   };
 
-  const res = await fetch(`${API_BASE_URL}/auth/register`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  });
+  try {
+    const res = await fetch(`${API_BASE_URL}/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
 
-  const data = await res.json().catch(() => ({}));
+    const data = await res.json().catch(() => ({}));
 
-  if (!res.ok) {
-    if (res.status === 409) {
-      throw new Error(
-        data.message || 'Mobile number or email is already registered. Please login instead.'
-      );
+    if (!res.ok) {
+      if (res.status === 409) {
+        return {
+          success: false,
+          error: data.message || 'Mobile number or email is already registered. Please login instead.',
+        };
+      }
+      if (res.status === 429) {
+        return {
+          success: false,
+          error: data.message || 'OTP cooldown active. Please wait 60 seconds before trying again.',
+        };
+      }
+      if (data.errors && Array.isArray(data.errors) && data.errors.length > 0) {
+        return {
+          success: false,
+          error: data.errors
+            .map((e: { field?: string; message: string }) => e.message || `${e.field}: error`)
+            .join(', '),
+        };
+      }
+      return { success: false, error: data.message || 'Registration failed. Please verify your details.' };
     }
-    if (res.status === 429) {
-      throw new Error(
-        data.message || 'OTP cooldown active. Please wait 60 seconds before trying again.'
-      );
-    }
-    if (data.errors && Array.isArray(data.errors) && data.errors.length > 0) {
-      throw new Error(
-        data.errors
-          .map((e: { field?: string; message: string }) => e.message || `${e.field}: error`)
-          .join(', ')
-      );
-    }
-    throw new Error(data.message || 'Registration failed. Please verify your details.');
+
+    // Store normalized mobile in cookie for OTP page
+    const cookieStore = await cookies();
+    cookieStore.set('pendingMobile', normalizedMobile, {
+      maxAge: 600, // 10 minutes
+      path: '/',
+      httpOnly: false, // readable client-side for displaying masked number
+      sameSite: 'lax',
+    });
+
+    return {
+      success: true,
+      message: data.message || 'Verification code sent via SMS',
+      mobileNumber: normalizedMobile,
+    };
+  } catch (error) {
+    return { success: false, error: 'Registration failed due to a network error. Please try again.' };
   }
-
-  // Store normalized mobile in cookie for OTP page
-  const cookieStore = await cookies();
-  cookieStore.set('pendingMobile', normalizedMobile, {
-    maxAge: 600, // 10 minutes
-    path: '/',
-    httpOnly: false, // readable client-side for displaying masked number
-    sameSite: 'lax',
-  });
-
-  return {
-    success: true,
-    message: data.message || 'Verification code sent via SMS',
-    mobileNumber: normalizedMobile,
-  };
 }
 
 export async function verifyOtpAction(values: VerifyOtpFormValues) {

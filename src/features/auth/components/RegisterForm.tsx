@@ -88,6 +88,9 @@ export function RegisterForm() {
             description: `Verification OTP code dispatched to ${res.mobileNumber}.`,
           });
           router.push(ROUTES.VERIFY_OTP);
+        } else {
+          setServerError(res.error || 'Registration failed.');
+          toast.error('Registration Failed', { description: res.error || 'Registration failed.' });
         }
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : 'Registration failed. Please try again.';
