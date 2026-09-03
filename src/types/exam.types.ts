@@ -101,6 +101,14 @@ export interface ExamEnrollmentAdmin {
       email?: string | null;
     };
   };
+  centre?: {
+    name: string;
+    address?: string;
+    venue?: string;
+    roomNumber?: string;
+    seatNumber?: string;
+    floor?: string;
+  };
   seatPlan?: {
     centreName: string;
     roomNumber: string;
@@ -109,8 +117,16 @@ export interface ExamEnrollmentAdmin {
   admitCard?: {
     id: string;
     admitCardNumber: string;
-    status: 'GENERATED' | 'NOT_GENERATED';
+    verificationToken?: string;
+    status: string;
     pdfUrl?: string;
+    generatedAt?: string;
+    locationSnapshot?: {
+      centreName?: string;
+      venue?: string;
+      roomNumber?: string;
+      seatNumber?: string;
+    };
   };
 }
 

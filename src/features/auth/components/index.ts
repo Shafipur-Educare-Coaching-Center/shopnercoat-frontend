@@ -4,3 +4,4 @@ export * from './LoginForm';
 export * from './RegisterForm';
 export * from './AuthSupportCards';
 export * from './AuthFooter';
+export * from './complete-profile';

@@ -9,5 +9,9 @@ export const ROUTES = {
   VERIFY_OTP: '/verify-otp',
   COMPLETE_PROFILE: '/complete-profile',
   STUDENT_DASHBOARD: '/dashboard/student',
+  STUDENT_RESULTS: '/dashboard/student/results',
+  STUDENT_ADMIT_CARDS: '/dashboard/student/admit-cards',
+  STUDENT_EXAMS: '/dashboard/student/exams',
+  STUDENT_PROFILE: '/dashboard/student/profile',
   ADMIN_DASHBOARD: '/dashboard/admin',
 };

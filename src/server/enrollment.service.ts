@@ -113,8 +113,29 @@ export async function adminTriggerBatchAdmitCards(
  * GET /enrollments/me - Get candidate enrollments (Student Portal)
  */
 export async function getMyEnrollments(token: string): Promise<ExamEnrollmentAdmin[]> {
-  const res = await serverFetch<ExamEnrollmentAdmin[]>('/enrollments/me', {
+  try {
+    const res = await serverFetch<ExamEnrollmentAdmin[]>('/enrollments/me', {
+      token,
+      cache: 'no-store',
+    });
+    return res.data || [];
+  } catch (err) {
+    console.error('GET /enrollments/me failed:', err);
+    return [];
+  }
+}
+
+/**
+ * POST /enrollments - Candidate Self-Enrollment into Model Test (Student Portal)
+ */
+export async function studentEnrollInExam(
+  token: string,
+  examId: string
+): Promise<ExamEnrollmentAdmin> {
+  const res = await serverFetch<ExamEnrollmentAdmin>('/enrollments', {
     token,
+    method: 'POST',
+    body: JSON.stringify({ examId: examId.trim() }),
     cache: 'no-store',
   });
   return res.data;
