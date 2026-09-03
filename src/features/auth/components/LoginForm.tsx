@@ -50,6 +50,13 @@ export function LoginForm() {
       try {
         const result = await loginAction(data);
 
+        if (!result.success) {
+          const errorMessage = result.error || 'Invalid credentials. Please verify and try again.';
+          setServerError(errorMessage);
+          toast.error('Authentication Failed', { description: errorMessage });
+          return;
+        }
+
         toast.success('Login Successful', {
           description: `Welcome back to ShopnerCoat Examination Portal.`,
         });
