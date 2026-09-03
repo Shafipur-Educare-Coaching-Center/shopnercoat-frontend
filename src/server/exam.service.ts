@@ -15,21 +15,21 @@ import { ApiResponse } from '@/types/api.types';
  * Format string to ISO 8601 DateTime
  */
 function toIsoDateTime(val: string): string {
-  if (!val) return new Date().toISOString();
+  if (!val) return '';
   const trimmed = val.trim();
-  if (trimmed.includes('T') && trimmed.endsWith('Z')) return trimmed;
+  // If it's "YYYY-MM-DDTHH:mm" -> convert to "YYYY-MM-DD HH:mm:00"
   if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(trimmed)) {
-    return `${trimmed}:00.000Z`;
+    return trimmed.replace('T', ' ') + ':00';
   }
+  // If it's "YYYY-MM-DDTHH:mm:ss" -> convert to "YYYY-MM-DD HH:mm:ss"
   if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(trimmed)) {
-    return `${trimmed}.000Z`;
+    return trimmed.replace('T', ' ');
   }
+  // If it's "YYYY-MM-DD" -> "YYYY-MM-DD 00:00:00"
   if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
-    return `${trimmed}T00:00:00.000Z`;
+    return `${trimmed} 00:00:00`;
   }
-  const d = new Date(trimmed);
-  if (!isNaN(d.getTime())) return d.toISOString();
-  return new Date().toISOString();
+  return trimmed;
 }
 
 /**

@@ -1,131 +1,231 @@
 /**
- * Unified Date and Registration Window Utilities for Shopner Coat
+ * Strict Nominal Dhaka Timezone Date and Registration Utilities for Shopner Coat
+ *
+ * Guarantees zero timezone shift (+6h bug eliminated) by parsing and rendering
+ * the exact nominal date/time digits returned from the database.
  */
+
+export const DHAKA_TIMEZONE = 'Asia/Dhaka';
+
+const MONTH_NAMES_SHORT = [
+  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+];
+
+export interface NominalDateTime {
+  year: string;
+  month: string;
+  day: string;
+  hour: number;
+  minute: number;
+  second: number;
+  dateKey: string;       // "YYYY-MM-DD"
+  formattedDate: string;  // "03 Sep 2026"
+  formattedTime: string;  // "12:00 PM"
+  inputDateTime: string;  // "YYYY-MM-DDTHH:mm"
+  inputDate: string;      // "YYYY-MM-DD"
+  rawString: string;      // "YYYY-MM-DDTHH:mm:ss"
+}
 
 /**
- * Parses any date/time string from database, ISO, or input safely.
+ * Extracts exact nominal digits (YYYY, MM, DD, HH, mm, ss) without any timezone shifting
  */
-export function parseDateTime(val?: string | Date | null): Date | null {
+export function parseNominalDateTime(val?: string | Date | null): NominalDateTime | null {
   if (!val) return null;
-  if (val instanceof Date) return isNaN(val.getTime()) ? null : val;
 
-  // Handle SQL datetime "YYYY-MM-DD HH:mm:ss" -> convert space to T
-  const cleanStr = typeof val === 'string' ? val.trim().replace(' ', 'T') : String(val);
-  const d = new Date(cleanStr);
-  if (!isNaN(d.getTime())) return d;
+  let raw = '';
+  if (val instanceof Date) {
+    if (isNaN(val.getTime())) return null;
+    const parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone: DHAKA_TIMEZONE,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false,
+    }).formatToParts(val);
+    const get = (t: string) => parts.find((p) => p.type === t)?.value || '00';
+    raw = `${get('year')}-${get('month')}-${get('day')} ${get('hour')}:${get('minute')}:${get('second')}`;
+  } else {
+    raw = String(val).trim();
+  }
+
+  // 1. Matches "YYYY-MM-DD HH:mm:ss" or "YYYY-MM-DDTHH:mm:ss..."
+  const match = raw.match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?/);
+  if (match) {
+    const [, year, month, day, hhStr, mmStr, ssStr = '00'] = match;
+    const hour = parseInt(hhStr, 10);
+    const minute = parseInt(mmStr, 10);
+    const second = parseInt(ssStr, 10);
+
+    const monthIdx = parseInt(month, 10) - 1;
+    const monthName = MONTH_NAMES_SHORT[monthIdx] || month;
+
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    const displayHour = hour % 12 === 0 ? 12 : hour % 12;
+    const displayMinute = String(minute).padStart(2, '0');
+    const formattedTime = `${displayHour}:${displayMinute} ${ampm}`;
+    const formattedDate = `${day} ${monthName} ${year}`;
+
+    return {
+      year,
+      month,
+      day,
+      hour,
+      minute,
+      second,
+      dateKey: `${year}-${month}-${day}`,
+      formattedDate,
+      formattedTime,
+      inputDateTime: `${year}-${month}-${day}T${hhStr}:${mmStr}`,
+      inputDate: `${year}-${month}-${day}`,
+      rawString: `${year}-${month}-${day}T${hhStr}:${mmStr}:${ssStr}`,
+    };
+  }
+
+  // 2. Matches date only "YYYY-MM-DD"
+  const dateMatch = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (dateMatch) {
+    const [, year, month, day] = dateMatch;
+    const monthIdx = parseInt(month, 10) - 1;
+    const monthName = MONTH_NAMES_SHORT[monthIdx] || month;
+
+    return {
+      year,
+      month,
+      day,
+      hour: 0,
+      minute: 0,
+      second: 0,
+      dateKey: `${year}-${month}-${day}`,
+      formattedDate: `${day} ${monthName} ${year}`,
+      formattedTime: '12:00 AM',
+      inputDateTime: `${year}-${month}-${day}T00:00`,
+      inputDate: `${year}-${month}-${day}`,
+      rawString: `${year}-${month}-${day}T00:00:00`,
+    };
+  }
+
   return null;
 }
 
 /**
- * Formats date into readable string e.g. "04 Sept 2026" or "Fri, Sep 4, 2026"
+ * Backwards compatibility aliases
+ */
+export const parseDhakaDateTime = (val?: string | Date | null): Date | null => {
+  const parsed = parseNominalDateTime(val);
+  if (!parsed) return null;
+  return new Date(`${parsed.rawString}+06:00`);
+};
+export const parseDateTime = parseDhakaDateTime;
+
+/**
+ * Formats date into readable string e.g. "04 Sept 2026"
  */
 export function formatExamDate(val?: string | Date | null, includeWeekday = false): string {
   if (!val) return 'Date TBA';
-  const d = parseDateTime(val);
-  if (!d) return String(val).split('T')[0];
+  const parsed = parseNominalDateTime(val);
+  if (!parsed) return String(val).split('T')[0].split(' ')[0];
 
-  return d.toLocaleDateString('en-GB', {
-    ...(includeWeekday ? { weekday: 'short' } : {}),
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  });
+  if (includeWeekday) {
+    try {
+      const d = new Date(`${parsed.rawString}+06:00`);
+      const weekday = new Intl.DateTimeFormat('en-US', { timeZone: DHAKA_TIMEZONE, weekday: 'short' }).format(d);
+      return `${weekday}, ${parsed.formattedDate}`;
+    } catch {
+      return parsed.formattedDate;
+    }
+  }
+
+  return parsed.formattedDate;
 }
 
 /**
- * Formats time from date/time string or standard time string
+ * Formats time string e.g. "12:00 PM", "09:00 PM"
  */
 export function formatExamTime(val?: string | Date | null): string {
   if (!val) return '';
-  // If already formatted like "10:00 AM"
   if (typeof val === 'string' && (val.includes('AM') || val.includes('PM'))) {
     return val.trim();
   }
 
-  const d = parseDateTime(val);
-  if (!d) return String(val);
+  const parsed = parseNominalDateTime(val);
+  if (!parsed) return String(val);
 
-  return d.toLocaleTimeString('en-US', {
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true,
-  });
+  return parsed.formattedTime;
 }
 
 /**
  * Formats candidate registration window e.g.
- * - Same day: "03 Sept, 12:00 PM – 08:00 PM"
- * - Multi day: "03 Sept, 12:00 PM to 04 Sept, 08:00 PM"
+ * - Same day: "03 Sep, 12:00 PM – 09:00 PM"
+ * - Multi day: "03 Sep, 12:00 PM to 04 Sep, 09:00 PM"
  */
 export function formatExamRegWindow(startIso?: string | null, endIso?: string | null): string {
   if (!endIso && !startIso) return 'Open for registration';
 
-  const startD = parseDateTime(startIso);
-  const endD = parseDateTime(endIso);
+  const startParsed = parseNominalDateTime(startIso);
+  const endParsed = parseNominalDateTime(endIso);
 
-  const timeFmt = (d: Date) =>
-    d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-
-  const dateFmt = (d: Date) =>
-    d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
-
-  if (startD && endD) {
-    const isSameDay =
-      startD.getFullYear() === endD.getFullYear() &&
-      startD.getMonth() === endD.getMonth() &&
-      startD.getDate() === endD.getDate();
-
-    if (isSameDay) {
-      return `${dateFmt(startD)}, ${timeFmt(startD)} – ${timeFmt(endD)}`;
+  if (startParsed && endParsed) {
+    if (startParsed.dateKey === endParsed.dateKey) {
+      return `${endParsed.formattedDate}, ${startParsed.formattedTime} – ${endParsed.formattedTime}`;
     }
-    return `${dateFmt(startD)}, ${timeFmt(startD)} to ${dateFmt(endD)}, ${timeFmt(endD)}`;
+    return `${startParsed.formattedDate}, ${startParsed.formattedTime} to ${endParsed.formattedDate}, ${endParsed.formattedTime}`;
   }
 
-  if (endD) {
-    return `${dateFmt(endD)}, ${timeFmt(endD)}`;
+  if (endParsed) {
+    return `${endParsed.formattedDate}, ${endParsed.formattedTime}`;
   }
 
   return 'Open for registration';
 }
 
 /**
- * Formats any datetime into "YYYY-MM-DDTHH:mm" for <input type="datetime-local" />
- * Avoids unintended timezone shifts by preserving nominal local representation.
+ * Formats datetime into "YYYY-MM-DDTHH:mm" for <input type="datetime-local" />
  */
 export function toDateTimeLocalInput(val?: string | null): string {
-  if (!val) return '';
-  const clean = val.trim().replace(' ', 'T');
-
-  // If already in YYYY-MM-DDTHH:mm format
-  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(clean)) {
-    return clean.slice(0, 16);
-  }
-
-  const d = parseDateTime(val);
-  if (!d) return '';
-
-  const pad = (n: number) => String(n).padStart(2, '0');
-  const y = d.getFullYear();
-  const m = pad(d.getMonth() + 1);
-  const day = pad(d.getDate());
-  const h = pad(d.getHours());
-  const min = pad(d.getMinutes());
-  return `${y}-${m}-${day}T${h}:${min}`;
+  const parsed = parseNominalDateTime(val);
+  return parsed ? parsed.inputDateTime : '';
 }
 
 /**
  * Formats date into "YYYY-MM-DD" for <input type="date" />
  */
 export function toDateInput(val?: string | null): string {
-  if (!val) return '';
-  const clean = val.trim().split('T')[0].split(' ')[0];
-  if (/^\d{4}-\d{2}-\d{2}$/.test(clean)) return clean;
+  const parsed = parseNominalDateTime(val);
+  return parsed ? parsed.inputDate : '';
+}
 
-  const d = parseDateTime(val);
-  if (!d) return '';
+/**
+ * Gets current timestamp representation in Bangladesh (Asia/Dhaka)
+ */
+function getDhakaCurrentTime(): { nowKey: string; nowRaw: string } {
+  const now = new Date();
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: DHAKA_TIMEZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  }).formatToParts(now);
 
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  const get = (t: string) => parts.find((p) => p.type === t)?.value || '00';
+  const y = get('year');
+  const m = get('month');
+  const d = get('day');
+  const hh = get('hour');
+  const mm = get('minute');
+  const ss = get('second');
+
+  return {
+    nowKey: `${y}-${m}-${d}`,
+    nowRaw: `${y}-${m}-${d}T${hh}:${mm}:${ss}`,
+  };
 }
 
 /**
@@ -147,13 +247,11 @@ export function evaluateExamRegistration(exam: {
   registrationEndAt?: string | null;
 }): ExamRegistrationEvaluation {
   const isStatusOpen = exam.status === 'REGISTRATION_OPEN' || !exam.status;
-  const now = new Date().getTime();
 
-  const startD = parseDateTime(exam.registrationStartAt);
-  const endD = parseDateTime(exam.registrationEndAt);
+  const { nowKey, nowRaw } = getDhakaCurrentTime();
 
-  const startTime = startD ? startD.getTime() : null;
-  const endTime = endD ? endD.getTime() : null;
+  const startParsed = parseNominalDateTime(exam.registrationStartAt);
+  const endParsed = parseNominalDateTime(exam.registrationEndAt);
 
   // 1. If explicitly closed or cancelled in admin
   if (exam.status === 'REGISTRATION_CLOSED' || exam.status === 'CANCELLED') {
@@ -166,21 +264,19 @@ export function evaluateExamRegistration(exam: {
   }
 
   // 2. If registration window has not started yet
-  if (startTime && now < startTime) {
-    const opensTimeStr = formatExamTime(startD);
-    const opensDateStr = formatExamDate(startD);
-    const isToday = startD && new Date().toDateString() === startD.toDateString();
+  if (startParsed && nowRaw < startParsed.rawString) {
+    const isToday = nowKey === startParsed.dateKey;
 
     return {
       status: 'BEFORE_OPEN',
       isOpen: false,
-      badgeText: isToday ? `Opens Today at ${opensTimeStr}` : `Opens ${opensDateStr}`,
+      badgeText: isToday ? `Opens Today at ${startParsed.formattedTime}` : `Opens ${startParsed.formattedDate}`,
       badgeVariant: 'soon',
     };
   }
 
   // 3. If registration window has already passed
-  if (endTime && now > endTime) {
+  if (endParsed && nowRaw > endParsed.rawString) {
     return {
       status: 'PAST_DEADLINE',
       isOpen: false,
@@ -192,11 +288,11 @@ export function evaluateExamRegistration(exam: {
   // 4. Registration is currently active!
   if (isStatusOpen) {
     let timeRemainingText = 'Open for Registration';
-    if (endD) {
-      const isEndingToday = new Date().toDateString() === endD.toDateString();
+    if (endParsed) {
+      const isEndingToday = nowKey === endParsed.dateKey;
       timeRemainingText = isEndingToday
-        ? `Closes Today at ${formatExamTime(endD)}`
-        : `Closes ${formatExamDate(endD)}`;
+        ? `Closes Today at ${endParsed.formattedTime}`
+        : `Closes ${endParsed.formattedDate}`;
     }
 
     return {
