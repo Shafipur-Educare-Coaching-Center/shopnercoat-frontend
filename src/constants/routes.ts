@@ -12,6 +12,9 @@ export const ROUTES = {
   STUDENT_RESULTS: '/dashboard/student/results',
   STUDENT_ADMIT_CARDS: '/dashboard/student/admit-cards',
   STUDENT_EXAMS: '/dashboard/student/exams',
+  STUDENT_ENROLLMENTS: '/dashboard/student/enrollments',
+  STUDENT_RANKINGS: '/dashboard/student/rankings',
+  STUDENT_ANNOUNCEMENTS: '/dashboard/student/announcements',
   STUDENT_PROFILE: '/dashboard/student/profile',
   ADMIN_DASHBOARD: '/dashboard/admin',
 };

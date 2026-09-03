@@ -2,7 +2,11 @@ import 'server-only';
 import { serverFetch } from '@/lib/server/apiClient';
 import { getAccessToken } from '@/lib/server/getTokens';
 import { Exam } from '@/types/exam.types';
+import { ExamLeaderboardData, TopRanker } from '@/types/ranking.types';
 
+/**
+ * GET /rankings/public/:examId - Returns top rankers and leaderboard
+ */
 export async function getPublicRanking(examId: string): Promise<unknown> {
   const token = await getAccessToken();
 
@@ -14,23 +18,13 @@ export async function getPublicRanking(examId: string): Promise<unknown> {
     });
 
     if (res && res.data) {
-      const dataObj = res.data as Record<string, unknown>;
-      const metadataObj = dataObj?.metadata as Record<string, unknown> | undefined;
-      const list = Array.isArray(res.data)
-        ? res.data
-        : Array.isArray(metadataObj?.topRankers)
-        ? metadataObj.topRankers
-        : dataObj?.topRankers;
-
-      if (list && Array.isArray(list) && list.length > 0) {
-        return res.data;
-      }
+      return res.data;
     }
   } catch (err) {
     console.warn(`GET /rankings/public/${examId} returned empty or failed:`, err);
   }
 
-  // 2. Fallback: If token exists (e.g. logged in Admin / Student), fetch /results/admin/exam/:examId
+  // 2. Fallback: If token exists, try /results/admin/exam/:examId
   if (token) {
     try {
       const res = await serverFetch<Record<string, unknown>>(`/results/admin/exam/${examId}`, {
@@ -49,6 +43,25 @@ export async function getPublicRanking(examId: string): Promise<unknown> {
   return [];
 }
 
+/**
+ * GET /rankings/exam/:examId/me - Returns student's individual standing
+ */
+export async function getStudentExamStanding(token: string, examId: string): Promise<TopRanker | null> {
+  try {
+    const res = await serverFetch<TopRanker>(`/rankings/exam/${examId}/me`, {
+      token,
+      cache: 'no-store',
+    });
+    return res.data || null;
+  } catch (err) {
+    console.warn(`GET /rankings/exam/${examId}/me failed:`, err);
+    return null;
+  }
+}
+
+/**
+ * GET /exams - Lists all available exams
+ */
 export async function getPublicExamsForRanking(): Promise<Exam[]> {
   try {
     const res = await serverFetch<Exam[]>('/exams', {

@@ -80,7 +80,7 @@ export async function getStudentAnalytics(token: string): Promise<StudentDashboa
           testSeriesProgress: rawKpi?.testSeriesProgress || {
             completedTests: totalResults,
             totalEnrolledTests: Math.max(totalResults, 0),
-            progressPercentage: totalResults > 0 ? 100 : 0,
+            completionPercentage: totalResults > 0 ? 100 : 0,
             nextExamLabel: data.upcomingExam?.examTitle || 'Next Mock Test',
           },
         };

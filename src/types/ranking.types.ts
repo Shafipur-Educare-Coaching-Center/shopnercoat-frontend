@@ -3,11 +3,30 @@ export interface TopRanker {
   studentId: string;
   fullName: string;
   rollNumber?: number | string;
+  collegeName?: string;
   photoUrl?: string | null;
   obtainedMarks: number;
   percentage: number;
+  correctCount?: number;
+  wrongCount?: number;
   remarks?: string;
   tags?: string[];
+}
+
+export interface ExamLeaderboardData {
+  exam?: {
+    id: string;
+    title: string;
+    code: string;
+    examDate?: string;
+    totalMarks?: number;
+    passMarks?: number;
+    totalExaminees?: number;
+    averageScore?: number;
+    topScore?: number;
+  };
+  topRankers: TopRanker[];
+  rankings?: TopRanker[];
 }
 
 export interface PublishedRanking {
@@ -34,4 +53,3 @@ export interface RankerDisplayItem {
   tags: string[];
   initials?: string;
 }
-

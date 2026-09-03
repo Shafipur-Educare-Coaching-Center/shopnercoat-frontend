@@ -1,9 +1,13 @@
 export type AnnouncementStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
+export type AnnouncementPriority = 'URGENT' | 'IMPORTANT' | 'GENERAL';
 
 export interface Announcement {
   id: string;
   title: string;
   content: string;
+  category?: string;
+  priority?: AnnouncementPriority;
+  pinned?: boolean;
   status: AnnouncementStatus;
   publishedAt: string | null;
   expiresAt: string | null;
@@ -16,6 +20,9 @@ export interface Announcement {
 export interface AnnouncementFormData {
   title: string;
   content: string;
+  category?: string;
+  priority?: AnnouncementPriority;
+  pinned?: boolean;
   status?: AnnouncementStatus;
   publishedAt?: string | null;
   expiresAt?: string | null;
@@ -24,6 +31,7 @@ export interface AnnouncementFormData {
 
 export interface AnnouncementFilterParams {
   search?: string;
+  category?: string;
   status?: string;
   page?: number;
   limit?: number;
