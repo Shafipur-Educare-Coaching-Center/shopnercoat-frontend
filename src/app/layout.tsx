@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { Providers } from "@/store/Providers";
 import { APP_NAME, APP_DESCRIPTION } from "@/constants";
-
+import { Analytics } from '@vercel/analytics/next';
 export const metadata: Metadata = {
   title: APP_NAME,
   description: APP_DESCRIPTION,
@@ -26,6 +26,7 @@ export default function RootLayout({
         <Providers>
           {children}
         </Providers>
+        <Analytics />
       </body>
     </html>
   );

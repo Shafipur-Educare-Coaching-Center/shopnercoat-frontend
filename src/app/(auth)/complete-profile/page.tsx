@@ -310,7 +310,7 @@ export default function CompleteProfilePage() {
 
   return (
     <div className="max-w-3xl mx-auto bg-white rounded-3xl border border-slate-200/90 p-6 sm:p-10 shadow-xl">
-      
+
       {/* Top Wizard Header */}
       <div className="mb-8">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
@@ -340,22 +340,20 @@ export default function CompleteProfilePage() {
             return (
               <div key={item.step} className="space-y-1">
                 <div
-                  className={`h-1.5 rounded-full transition-all duration-300 ${
-                    isCompleted
+                  className={`h-1.5 rounded-full transition-all duration-300 ${isCompleted
                       ? 'bg-emerald-500'
                       : isCurrent
-                      ? 'bg-indigo-600'
-                      : 'bg-slate-100'
-                  }`}
+                        ? 'bg-indigo-600'
+                        : 'bg-slate-100'
+                    }`}
                 />
                 <p
-                  className={`text-[10px] font-bold text-center ${
-                    isCurrent
+                  className={`text-[10px] font-bold text-center ${isCurrent
                       ? 'text-indigo-600'
                       : isCompleted
-                      ? 'text-emerald-600'
-                      : 'text-slate-400'
-                  }`}
+                        ? 'text-emerald-600'
+                        : 'text-slate-400'
+                    }`}
                 >
                   {item.title}
                 </p>
@@ -385,7 +383,7 @@ export default function CompleteProfilePage() {
         <div className="space-y-4 animate-in fade-in-50 duration-200">
           <div>
             <label className="block text-xs font-bold text-slate-700 mb-1">
-              Full Name (As per SSC Certificate) *
+              Full Name (As per HSC Certificate) *
             </label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
@@ -585,7 +583,7 @@ export default function CompleteProfilePage() {
       {currentStep === 4 && (
         <div className="space-y-6 animate-in fade-in-50 duration-200">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            
+
             {/* Photo Upload Card */}
             <div className="p-5 rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 flex flex-col items-center justify-center text-center space-y-3">
               <div className="size-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
