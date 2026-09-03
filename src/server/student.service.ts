@@ -9,6 +9,22 @@ export async function getStudentMe(token: string): Promise<Student> {
 }
 
 /**
+ * PATCH /students/me - Update candidate's own profile
+ */
+export async function updateStudentMe(
+  token: string,
+  data: Partial<StudentAdminFormData>
+): Promise<Student> {
+  const res = await serverFetch<Student>('/students/me', {
+    token,
+    method: 'PATCH',
+    body: JSON.stringify(data),
+    cache: 'no-store',
+  });
+  return res.data;
+}
+
+/**
  * GET /students/admin/list - List all students (Admin Only)
  */
 export async function getAdminStudentList(
