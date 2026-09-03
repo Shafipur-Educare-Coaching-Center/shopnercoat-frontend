@@ -39,3 +39,4 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+EXPRESS_BACKEND_REGISTRATION_WINDOW_GUIDE.md
