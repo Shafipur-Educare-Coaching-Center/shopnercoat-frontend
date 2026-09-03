@@ -39,6 +39,10 @@ export function AdminLoginForm() {
         });
         router.push(ROUTES.ADMIN_DASHBOARD);
         router.refresh();
+      } else {
+        toast.error('Authentication Failed', {
+          description: result.error || 'Invalid credentials or connection error.',
+        });
       }
     } catch (err: unknown) {
       const errorMessage =

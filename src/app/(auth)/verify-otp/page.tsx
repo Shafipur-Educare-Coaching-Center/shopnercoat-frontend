@@ -121,6 +121,10 @@ export default function VerifyOtpPage() {
             description: 'Please complete your candidate profile to receive your Roll Number.',
           });
           router.push(ROUTES.COMPLETE_PROFILE);
+        } else {
+          const message = res.error || 'Invalid or expired OTP code.';
+          setServerError(message);
+          toast.error('Verification Failed', { description: message });
         }
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : 'Invalid or expired OTP code.';
@@ -137,10 +141,16 @@ export default function VerifyOtpPage() {
     startResending(async () => {
       try {
         const res = await resendOtpAction(mobileNumber);
-        toast.success('OTP Resent!', { description: res.message });
-        setTimer(60);
-        setOtpValues(['', '', '', '', '', '']);
-        inputRefs.current[0]?.focus();
+        if (res.success) {
+          toast.success('OTP Resent!', { description: res.message });
+          setTimer(60);
+          setOtpValues(['', '', '', '', '', '']);
+          inputRefs.current[0]?.focus();
+        } else {
+          const message = res.error || 'Failed to resend OTP.';
+          setServerError(message);
+          toast.error('Resend Failed', { description: message });
+        }
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : 'Failed to resend OTP.';
         setServerError(message);

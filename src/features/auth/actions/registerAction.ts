@@ -83,75 +83,84 @@ export async function verifyOtpAction(values: VerifyOtpFormValues) {
   const parsed = verifyOtpSchema.safeParse(values);
   if (!parsed.success) {
     const errorMsg = parsed.error.issues.map((i) => i.message).join(', ');
-    throw new Error(errorMsg || 'Invalid OTP');
+    return { success: false, error: errorMsg || 'Invalid OTP' };
   }
 
   const normalizedMobile = normalizeMobileNumber(parsed.data.mobileNumber);
 
-  const res = await fetch(`${API_BASE_URL}/auth/verify-otp`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      mobileNumber: normalizedMobile,
-      otp: parsed.data.otp.trim(),
-    }),
-  });
+  try {
+    const res = await fetch(`${API_BASE_URL}/auth/verify-otp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        mobileNumber: normalizedMobile,
+        otp: parsed.data.otp.trim(),
+      }),
+    });
 
-  const data = await res.json().catch(() => ({}));
+    const data = await res.json().catch(() => ({}));
 
-  if (!res.ok) {
-    if (data.errors && Array.isArray(data.errors) && data.errors.length > 0) {
-      throw new Error(
-        data.errors
-          .map((e: { field?: string; message: string }) => e.message || `${e.field}: error`)
-          .join(', ')
-      );
+    if (!res.ok) {
+      if (data.errors && Array.isArray(data.errors) && data.errors.length > 0) {
+        return {
+          success: false,
+          error: data.errors
+            .map((e: { field?: string; message: string }) => e.message || `${e.field}: error`)
+            .join(', '),
+        };
+      }
+      return { success: false, error: data.message || 'Invalid or expired OTP code' };
     }
-    throw new Error(data.message || 'Invalid or expired OTP code');
+
+    const verifiedToken = data?.data?.verifiedToken;
+    if (!verifiedToken) {
+      return { success: false, error: 'Verification token missing in server response' };
+    }
+
+    const cookieStore = await cookies();
+    cookieStore.set('verifiedToken', verifiedToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 3600, // 1 hour to complete profile
+    });
+    cookieStore.delete('pendingMobile');
+
+    return {
+      success: true,
+      message: data.message || 'Mobile number verified successfully',
+      verifiedToken,
+    };
+  } catch (error) {
+    return { success: false, error: 'Verification failed due to a network error. Please try again.' };
   }
-
-  const verifiedToken = data?.data?.verifiedToken;
-  if (!verifiedToken) {
-    throw new Error('Verification token missing in server response');
-  }
-
-  const cookieStore = await cookies();
-  cookieStore.set('verifiedToken', verifiedToken, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    path: '/',
-    maxAge: 3600, // 1 hour to complete profile
-  });
-  cookieStore.delete('pendingMobile');
-
-  return {
-    success: true,
-    message: data.message || 'Mobile number verified successfully',
-    verifiedToken,
-  };
 }
 
 export async function resendOtpAction(mobileNumber: string) {
   const normalizedMobile = normalizeMobileNumber(mobileNumber);
 
-  const res = await fetch(`${API_BASE_URL}/auth/resend-otp`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ mobileNumber: normalizedMobile }),
-  });
+  try {
+    const res = await fetch(`${API_BASE_URL}/auth/resend-otp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mobileNumber: normalizedMobile }),
+    });
 
-  const data = await res.json().catch(() => ({}));
+    const data = await res.json().catch(() => ({}));
 
-  if (!res.ok) {
-    if (res.status === 429) {
-      throw new Error('Please wait 60 seconds before requesting another OTP.');
+    if (!res.ok) {
+      if (res.status === 429) {
+        return { success: false, error: 'Please wait 60 seconds before requesting another OTP.' };
+      }
+      return { success: false, error: data.message || 'Failed to resend OTP code' };
     }
-    throw new Error(data.message || 'Failed to resend OTP code');
-  }
 
-  return {
-    success: true,
-    message: data.message || 'New OTP sent to your phone number.',
-  };
+    return {
+      success: true,
+      message: data.message || 'New OTP sent to your phone number.',
+    };
+  } catch (error) {
+    return { success: false, error: 'Failed to resend OTP due to a network error.' };
+  }
 }
