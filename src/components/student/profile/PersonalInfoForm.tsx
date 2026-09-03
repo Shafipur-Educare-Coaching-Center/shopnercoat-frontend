@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { Student } from '@/types/student.types';
 import { updateStudentProfileAction } from '@/features/student/actions/profileActions';
@@ -15,6 +15,8 @@ import {
   CheckCircle2,
   AlertCircle,
   Loader2,
+  Lock,
+  ShieldAlert,
 } from 'lucide-react';
 
 interface PersonalInfoFormProps {
@@ -22,18 +24,17 @@ interface PersonalInfoFormProps {
 }
 
 export function PersonalInfoForm({ student }: PersonalInfoFormProps) {
-  const [fullName, setFullName] = useState(student?.fullName || '');
   const [collegeName, setCollegeName] = useState(student?.collegeName || '');
-  const [dateOfBirth, setDateOfBirth] = useState(
-    student?.dateOfBirth ? student.dateOfBirth.split('T')[0] : '2006-05-14'
-  );
   const [fatherName, setFatherName] = useState(student?.fatherName || '');
   const [motherName, setMotherName] = useState(student?.motherName || '');
-  const [parentMobileNumber, setParentMobileNumber] = useState(student?.parentMobileNumber || '');
-  const [guardianMobileNumber, setGuardianMobileNumber] = useState(student?.guardianMobileNumber || '');
   const [presentAddress, setPresentAddress] = useState(student?.presentAddress || '');
   const [permanentAddress, setPermanentAddress] = useState(student?.permanentAddress || '');
   const [photoUrl, setPhotoUrl] = useState(student?.photoUrl || '');
+
+  const fullName = student?.fullName || 'Candidate Aspirant';
+  const dateOfBirth = student?.dateOfBirth ? student.dateOfBirth.split('T')[0] : '2006-05-14';
+  const parentMobileNumber = student?.parentMobileNumber || student?.user?.mobileNumber || '---';
+  const rollDisplay = student?.rollNumber ? String(student.rollNumber).padStart(7, '0') : '---';
 
   const [isPending, setIsPending] = useState(false);
   const [statusMessage, setStatusMessage] = useState<{
@@ -41,27 +42,47 @@ export function PersonalInfoForm({ student }: PersonalInfoFormProps) {
     text: string;
   } | null>(null);
 
+  useEffect(() => {
+    if (student) {
+      if (student.collegeName) setCollegeName(student.collegeName);
+      if (student.fatherName) setFatherName(student.fatherName);
+      if (student.motherName) setMotherName(student.motherName);
+      if (student.presentAddress) setPresentAddress(student.presentAddress);
+      if (student.permanentAddress) setPermanentAddress(student.permanentAddress);
+      if (student.photoUrl) setPhotoUrl(student.photoUrl);
+    }
+  }, [student]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsPending(true);
     setStatusMessage(null);
 
     try {
-      const res = await updateStudentProfileAction({
-        fullName: fullName.trim(),
+      const payload: Record<string, string> = {
         collegeName: collegeName.trim(),
-        dateOfBirth: new Date(dateOfBirth).toISOString(),
         fatherName: fatherName.trim(),
         motherName: motherName.trim(),
-        parentMobileNumber: parentMobileNumber.trim(),
-        guardianMobileNumber: guardianMobileNumber.trim() || undefined,
         presentAddress: presentAddress.trim(),
         permanentAddress: permanentAddress.trim(),
-        photoUrl: photoUrl.trim() || undefined,
-      });
+      };
+
+      if (photoUrl && photoUrl.trim().startsWith('http')) {
+        payload.photoUrl = photoUrl.trim();
+      }
+
+      const res = await updateStudentProfileAction(payload);
 
       if (res.success) {
         setStatusMessage({ type: 'success', text: res.message });
+        if (res.data) {
+          if (res.data.collegeName) setCollegeName(res.data.collegeName);
+          if (res.data.fatherName) setFatherName(res.data.fatherName);
+          if (res.data.motherName) setMotherName(res.data.motherName);
+          if (res.data.presentAddress) setPresentAddress(res.data.presentAddress);
+          if (res.data.permanentAddress) setPermanentAddress(res.data.permanentAddress);
+          if (res.data.photoUrl) setPhotoUrl(res.data.photoUrl);
+        }
       } else {
         setStatusMessage({ type: 'error', text: res.message });
       }
@@ -127,53 +148,63 @@ export function PersonalInfoForm({ student }: PersonalInfoFormProps) {
               className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200/80 rounded-xl text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 outline-hidden focus:ring-2 focus:ring-[#00796B]/25 focus:border-[#00796B] transition-all"
             />
             <p className="text-[11px] text-slate-400">
-              Provide a direct URL to a standard passport-sized candidate photograph.
+              Direct URL to your passport-sized photo for verified admit card pass generation.
             </p>
           </div>
         </div>
       </div>
 
-      {/* Personal Identity Grid */}
+      {/* Fixed Identity Banner */}
+      <div className="p-5 rounded-[24px] bg-amber-50/70 border border-amber-200/80 text-xs space-y-3">
+        <div className="flex items-center gap-2 text-amber-900 font-bold">
+          <ShieldAlert className="size-4 text-amber-600 shrink-0" />
+          <span>Immutable Central Board Credentials</span>
+        </div>
+        <p className="text-[11px] text-amber-800">
+          Official Candidate Name, Date of Birth, and Registered Roll Number are locked once registration is verified. For corrections, please contact the central examination board.
+        </p>
+        
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+          <div className="p-3 bg-white/80 rounded-xl border border-amber-200/50">
+            <span className="text-[10px] font-bold text-slate-400 uppercase flex items-center gap-1">
+              <Lock className="size-2.5 text-slate-400" /> Candidate Name
+            </span>
+            <p className="font-bold text-xs text-slate-900 truncate mt-0.5">{fullName}</p>
+          </div>
+
+          <div className="p-3 bg-white/80 rounded-xl border border-amber-200/50">
+            <span className="text-[10px] font-bold text-slate-400 uppercase flex items-center gap-1">
+              <Lock className="size-2.5 text-slate-400" /> Date of Birth
+            </span>
+            <p className="font-mono font-bold text-xs text-slate-900 mt-0.5">{dateOfBirth}</p>
+          </div>
+
+          <div className="p-3 bg-white/80 rounded-xl border border-amber-200/50">
+            <span className="text-[10px] font-bold text-slate-400 uppercase flex items-center gap-1">
+              <Lock className="size-2.5 text-slate-400" /> Registered Mobile
+            </span>
+            <p className="font-mono font-bold text-xs text-slate-900 mt-0.5">{parentMobileNumber}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Editable Information Grid */}
       <div className="p-6 rounded-[24px] bg-white border border-slate-200/80 shadow-2xs space-y-4">
         <h3 className="font-heading font-black text-sm text-slate-900 flex items-center gap-2">
           <User className="size-4 text-[#00796B]" />
-          <span>Personal Information</span>
+          <span>Editable Profile Details</span>
         </h3>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-          {/* Full Name */}
-          <div className="space-y-1.5">
-            <label className="font-bold text-slate-700">Candidate Full Name *</label>
-            <input
-              type="text"
-              required
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200/80 rounded-xl text-xs sm:text-sm text-slate-900 outline-hidden focus:ring-2 focus:ring-[#00796B]/25 focus:border-[#00796B] transition-all"
-            />
-          </div>
-
           {/* College Name */}
-          <div className="space-y-1.5">
-            <label className="font-bold text-slate-700">College / Institution *</label>
+          <div className="space-y-1.5 sm:col-span-2">
+            <label className="font-bold text-slate-700">College / Academic Institution *</label>
             <input
               type="text"
               required
               value={collegeName}
               onChange={(e) => setCollegeName(e.target.value)}
               placeholder="e.g. Notre Dame College, Dhaka"
-              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200/80 rounded-xl text-xs sm:text-sm text-slate-900 outline-hidden focus:ring-2 focus:ring-[#00796B]/25 focus:border-[#00796B] transition-all"
-            />
-          </div>
-
-          {/* Date of Birth */}
-          <div className="space-y-1.5">
-            <label className="font-bold text-slate-700">Date of Birth *</label>
-            <input
-              type="date"
-              required
-              value={dateOfBirth}
-              onChange={(e) => setDateOfBirth(e.target.value)}
               className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200/80 rounded-xl text-xs sm:text-sm text-slate-900 outline-hidden focus:ring-2 focus:ring-[#00796B]/25 focus:border-[#00796B] transition-all"
             />
           </div>
@@ -198,19 +229,6 @@ export function PersonalInfoForm({ student }: PersonalInfoFormProps) {
               required
               value={motherName}
               onChange={(e) => setMotherName(e.target.value)}
-              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200/80 rounded-xl text-xs sm:text-sm text-slate-900 outline-hidden focus:ring-2 focus:ring-[#00796B]/25 focus:border-[#00796B] transition-all"
-            />
-          </div>
-
-          {/* Parent Mobile */}
-          <div className="space-y-1.5">
-            <label className="font-bold text-slate-700">Parent Mobile Number *</label>
-            <input
-              type="tel"
-              required
-              value={parentMobileNumber}
-              onChange={(e) => setParentMobileNumber(e.target.value)}
-              placeholder="01XXXXXXXXX"
               className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200/80 rounded-xl text-xs sm:text-sm text-slate-900 outline-hidden focus:ring-2 focus:ring-[#00796B]/25 focus:border-[#00796B] transition-all"
             />
           </div>

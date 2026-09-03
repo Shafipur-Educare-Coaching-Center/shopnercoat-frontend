@@ -4,12 +4,12 @@ import { revalidatePath } from 'next/cache';
 import { getAccessToken } from '@/lib/server/getTokens';
 import { updateStudentMe } from '@/server/student.service';
 import { serverFetch } from '@/lib/server/apiClient';
-import { StudentAdminFormData } from '@/types/student.types';
+import { StudentAdminFormData, Student } from '@/types/student.types';
 
 export interface UpdateProfileResult {
   success: boolean;
   message: string;
-  data?: any;
+  data?: Student | null;
 }
 
 /**
@@ -25,14 +25,19 @@ export async function updateStudentProfileAction(
 
   try {
     const updated = await updateStudentMe(token, data);
+
     revalidatePath('/dashboard/student/profile');
+    revalidatePath('/dashboard/student/profile', 'page');
     revalidatePath('/dashboard/student');
+    revalidatePath('/dashboard/student', 'layout');
+
     return {
       success: true,
       message: 'Profile details updated successfully!',
       data: updated,
     };
   } catch (err: any) {
+    console.error('updateStudentProfileAction error:', err);
     return {
       success: false,
       message: err?.message || 'Failed to update profile details.',

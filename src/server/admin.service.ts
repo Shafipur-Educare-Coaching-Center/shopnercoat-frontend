@@ -1,322 +1,214 @@
 import 'server-only';
 import { serverFetch } from '@/lib/server/apiClient';
-import { AdminOverviewData } from '@/types/admin-overview.types';
+import { AdminOverviewData, HSCCollegeDistributionItem } from '@/types/admin-overview.types';
 import { Student } from '@/types/student.types';
 import { Exam } from '@/types/exam.types';
 
-// Fallback dataset tailored for HSC Medical Admission Candidates
+// Palette for dynamically-assigned chart colors
+const CHART_COLORS = [
+  '#2563EB', '#0D9488', '#7C3AED', '#DB2777', '#D97706',
+  '#059669', '#DC2626', '#0284C7', '#EA580C', '#64748B',
+];
+
+// Static fallback — only used if ALL live calls fail
 export const MOCK_ADMIN_OVERVIEW_DATA: AdminOverviewData = {
   stats: {
-    totalStudents: 1482,
-    activeStudents: 1390,
-    pendingStudents: 82,
-    suspendedStudents: 10,
-    monthlyGrowthPercent: 12.4,
-
-    totalExams: 28,
-    openRegistrationExams: 4,
-    ongoingExams: 2,
-    completedExams: 20,
-    draftExams: 2,
-
-    totalCentres: 16,
-    totalRooms: 64,
-    totalCapacity: 2400,
-
-    pendingResultsCount: 3,
-    pendingResultsCandidates: 420,
+    totalStudents: 0,
+    activeStudents: 0,
+    pendingStudents: 0,
+    suspendedStudents: 0,
+    monthlyGrowthPercent: 0,
+    totalExams: 0,
+    openRegistrationExams: 0,
+    ongoingExams: 0,
+    completedExams: 0,
+    draftExams: 0,
+    totalCentres: 0,
+    totalRooms: 0,
+    totalCapacity: 0,
+    pendingResultsCount: 0,
+    pendingResultsCandidates: 0,
   },
-
-  // 1. HSC Candidate Age Demographics (1st & 2nd Timers)
-  ageDistribution: [
-    {
-      ageGroup: '< 17 yrs',
-      categoryLabel: 'Early HSC Candidates',
-      count: 118,
-      percentage: 8.0,
-    },
-    {
-      ageGroup: '17 yrs',
-      categoryLabel: 'Standard HSC Examinees',
-      count: 474,
-      percentage: 32.0,
-    },
-    {
-      ageGroup: '18 yrs',
-      categoryLabel: '1st Time Medical Admission Seekers',
-      count: 593,
-      percentage: 40.0,
-    },
-    {
-      ageGroup: '19 yrs',
-      categoryLabel: 'Medical Admission 2nd Timers',
-      count: 222,
-      percentage: 15.0,
-    },
-    {
-      ageGroup: '20+ yrs',
-      categoryLabel: 'Special Quota & 2nd Timers',
-      count: 75,
-      percentage: 5.0,
-    },
-  ],
-
-  // 2. Candidate Location Distribution (Bangladesh Divisions)
-  locationDistribution: [
-    {
-      id: 'loc-dhaka',
-      division: 'Dhaka Division',
-      count: 652,
-      percentage: 44.0,
-      color: '#37447E', // Deep royal indigo
-    },
-    {
-      id: 'loc-chittagong',
-      division: 'Chittagong Division',
-      count: 296,
-      percentage: 20.0,
-      color: '#0D9488', // Medical teal
-    },
-    {
-      id: 'loc-rajshahi',
-      division: 'Rajshahi Division',
-      count: 207,
-      percentage: 14.0,
-      color: '#0284C7', // Ocean sky
-    },
-    {
-      id: 'loc-khulna',
-      division: 'Khulna Division',
-      count: 148,
-      percentage: 10.0,
-      color: '#10B981', // Emerald
-    },
-    {
-      id: 'loc-sylhet',
-      division: 'Sylhet Division',
-      count: 119,
-      percentage: 8.0,
-      color: '#F59E0B', // Amber
-    },
-    {
-      id: 'loc-others',
-      division: 'Other Divisions (Barisal, Rangpur, Mymensingh)',
-      count: 60,
-      percentage: 4.0,
-      color: '#F43F5E', // Rose
-    },
-  ],
-
-  // 3. Top HSC Colleges & Institutions
-  collegeDistribution: [
-    {
-      id: 'col-ndc',
-      collegeName: 'Notre Dame College (NDC)',
-      shortCode: 'NDC',
-      district: 'Dhaka',
-      count: 356,
-      percentage: 24.0,
-      color: '#2563EB',
-    },
-    {
-      id: 'col-dc',
-      collegeName: 'Dhaka College',
-      shortCode: 'DC',
-      district: 'Dhaka',
-      count: 267,
-      percentage: 18.0,
-      color: '#0D9488',
-    },
-    {
-      id: 'col-rumc',
-      collegeName: 'Rajuk Uttara Model College (RUMC)',
-      shortCode: 'RUMC',
-      district: 'Dhaka',
-      count: 222,
-      percentage: 15.0,
-      color: '#7C3AED',
-    },
-    {
-      id: 'col-vnc',
-      collegeName: 'Viqarunnisa Noon College',
-      shortCode: 'VNC',
-      district: 'Dhaka',
-      count: 207,
-      percentage: 14.0,
-      color: '#DB2777',
-    },
-    {
-      id: 'col-hcc',
-      collegeName: 'Holy Cross College',
-      shortCode: 'HCC',
-      district: 'Dhaka',
-      count: 163,
-      percentage: 11.0,
-      color: '#D97706',
-    },
-    {
-      id: 'col-acc',
-      collegeName: 'Adamjee Cantonment College',
-      shortCode: 'ACC',
-      district: 'Dhaka Cantt',
-      count: 119,
-      percentage: 8.0,
-      color: '#059669',
-    },
-    {
-      id: 'col-others',
-      collegeName: 'Govt. Science College & Other HSC Colleges',
-      shortCode: 'Others',
-      district: 'Nationwide',
-      count: 148,
-      percentage: 10.0,
-      color: '#64748B',
-    },
-  ],
-
-  // 4. Real-time Administrative Audit Logs
-  recentAuditLogs: [
-    {
-      id: 'audit-1',
-      action: 'Published Dense Rankings',
-      category: 'RESULT_PUBLISH',
-      actorName: 'Dr. Rafiqul Islam',
-      actorRole: 'Senior Controller',
-      targetEntity: 'MBBS-MOCK-2026-05 (420 candidates)',
-      ipAddress: '103.145.23.11',
-      location: 'Dhaka, BD',
-      status: 'SUCCESS',
-      timestamp: new Date(Date.now() - 4 * 60 * 1000).toISOString(), // 4 mins ago
-      details: 'Dense 4-tier tiebreaker calculated and published to public leaderboard.',
-    },
-    {
-      id: 'audit-2',
-      action: 'Generated Batch Admit Cards (120 PDFs)',
-      category: 'ADMIT_CARD',
-      actorName: 'BullMQ Auto-Worker #2',
-      actorRole: 'System Worker',
-      targetEntity: 'ANAT-GRAND-2026',
-      ipAddress: '127.0.0.1',
-      location: 'Server Internal',
-      status: 'SUCCESS',
-      timestamp: new Date(Date.now() - 18 * 60 * 1000).toISOString(), // 18 mins ago
-      details: 'All 120 admit cards with QR security tokens generated and emailed.',
-    },
-    {
-      id: 'audit-3',
-      action: 'Created Model Test (Draft)',
-      category: 'EXAM_LIFECYCLE',
-      actorName: 'Dr. Farhana Ahmed',
-      actorRole: 'Exam Admin',
-      targetEntity: 'PREMED-STG1-2026',
-      ipAddress: '103.145.23.14',
-      location: 'Dhaka, BD',
-      status: 'SUCCESS',
-      timestamp: new Date(Date.now() - 65 * 60 * 1000).toISOString(), // ~1 hr ago
-      details: 'Clinical Anatomy & Physiology Grand Mock scheduled for 25 October 2026.',
-    },
-    {
-      id: 'audit-4',
-      action: 'Candidate Account Suspended',
-      category: 'STUDENT_SECURITY',
-      actorName: 'Automated Integrity Watch',
-      actorRole: 'Security Bot',
-      targetEntity: 'Roll #4528649 (Tanvir A.)',
-      ipAddress: '182.160.112.5',
-      location: 'Chittagong, BD',
-      status: 'WARNING',
-      timestamp: new Date(Date.now() - 3 * 3600 * 1000).toISOString(), // 3 hrs ago
-      details: 'Duplicate mobile number verification attempt triggered security hold.',
-    },
-    {
-      id: 'audit-5',
-      action: 'Administrator 2FA Login',
-      category: 'AUTH_LOGIN',
-      actorName: 'Dr. Rafiqul Islam',
-      actorRole: 'Senior Controller',
-      targetEntity: 'Admin Portal Session',
-      ipAddress: '103.145.23.11',
-      location: 'Dhaka, BD',
-      status: 'SUCCESS',
-      timestamp: new Date(Date.now() - 5 * 3600 * 1000).toISOString(), // 5 hrs ago
-      details: 'Successful biometric and OTP authentication from Chrome/macOS.',
-    },
-    {
-      id: 'audit-6',
-      action: 'Added Examination Centre Venue',
-      category: 'EXAM_LIFECYCLE',
-      actorName: 'Admin Operations',
-      actorRole: 'Venue Manager',
-      targetEntity: 'Gazipur Central Hall (Rooms 101-104)',
-      ipAddress: '103.145.23.11',
-      location: 'Gazipur, BD',
-      status: 'SUCCESS',
-      timestamp: new Date(Date.now() - 8 * 3600 * 1000).toISOString(), // 8 hrs ago
-      details: 'Allocated 160 seats capacity across 4 air-conditioned hall rooms.',
-    },
-    {
-      id: 'audit-7',
-      action: 'Admit Card Email Delivery Retry',
-      category: 'ADMIT_CARD',
-      actorName: 'System Auto-Retry',
-      actorRole: 'Mail Worker',
-      targetEntity: 'Roll #4528641 (Dr. A. Khan)',
-      ipAddress: '127.0.0.1',
-      location: 'Server Internal',
-      status: 'SUCCESS',
-      timestamp: new Date(Date.now() - 12 * 3600 * 1000).toISOString(), // 12 hrs ago
-      details: 'SMTP bounce re-routed successfully to primary Gmail inbox.',
-    },
-  ],
-
+  ageDistribution: [],
+  locationDistribution: [],
+  collegeDistribution: [],
+  recentAuditLogs: [],
   lastUpdated: new Date().toISOString(),
 };
 
-// Main Server Function: Fetch live statistics or augment with rich mock analytics
+// ─────────────────────────────────────────────────────────────────────────────
+// Main server function: fetch all live dashboard data in parallel
+// ─────────────────────────────────────────────────────────────────────────────
 export async function getAdminOverviewData(token?: string): Promise<AdminOverviewData> {
-  try {
-    if (!token) return MOCK_ADMIN_OVERVIEW_DATA;
+  if (!token) return MOCK_ADMIN_OVERVIEW_DATA;
 
-    // Concurrently fetch real counts where endpoints exist
-    const [studentsRes, examsRes] = await Promise.allSettled([
-      serverFetch<Student[]>('/students/admin/list', {
-        token,
-        params: { page: 1, limit: 1 },
-        cache: 'no-store',
-      }),
-      serverFetch<Exam[]>('/exams', {
-        token,
-        params: { limit: 50 },
-        cache: 'no-store',
-      }),
+  const [studentStatsRes, demographicsRes, examStatsRes, auditLogsRes, examsRes] =
+    await Promise.allSettled([
+      serverFetch<Record<string, unknown>>('/students/admin/stats', { token, cache: 'no-store' }),
+      serverFetch<Record<string, unknown>>('/students/admin/demographics', { token, cache: 'no-store' }),
+      serverFetch<Record<string, unknown>>('/exams/admin/stats', { token, cache: 'no-store' }),
+      serverFetch<Record<string, unknown>>('/admin/audit-logs?limit=10', { token, cache: 'no-store' }),
+      serverFetch<Exam[]>('/exams', { token, params: { limit: 200 }, cache: 'no-store' }),
     ]);
 
-    const liveData = { ...MOCK_ADMIN_OVERVIEW_DATA };
+  // ── 1. Student Stats ───────────────────────────────────────────────────────
+  const studentStats =
+    studentStatsRes.status === 'fulfilled' ? (studentStatsRes.value?.data as Record<string, number> | null) : null;
 
-    // Update real counts if available from backend
-    if (studentsRes.status === 'fulfilled' && studentsRes.value?.meta?.total) {
-      liveData.stats.totalStudents = studentsRes.value.meta.total;
-    }
+  const totalStudents   = studentStats?.total   ?? 0;
+  const activeStudents  = studentStats?.active  ?? 0;
+  const pendingStudents = studentStats?.pending  ?? 0;
+  const suspendedStudents = studentStats?.suspended ?? 0;
 
-    if (examsRes.status === 'fulfilled' && Array.isArray(examsRes.value?.data)) {
-      const exams = examsRes.value.data;
-      liveData.stats.totalExams = exams.length;
-      liveData.stats.openRegistrationExams = exams.filter(
-        (e) => e.status === 'REGISTRATION_OPEN'
-      ).length;
-      liveData.stats.ongoingExams = exams.filter(
-        (e) => e.status === 'ONGOING' || e.status === 'UPCOMING'
-      ).length;
-      liveData.stats.completedExams = exams.filter(
-        (e) => e.status === 'COMPLETED' || e.status === 'RESULT_PUBLISHED'
-      ).length;
-      liveData.stats.draftExams = exams.filter((e) => e.status === 'DRAFT').length;
-    }
+  // ── 2. Demographics ────────────────────────────────────────────────────────
+  const demoData =
+    demographicsRes.status === 'fulfilled' ? (demographicsRes.value?.data as Record<string, unknown> | null) : null;
 
-    liveData.lastUpdated = new Date().toISOString();
-    return liveData;
+  const rawAge = Array.isArray(demoData?.ageDistribution)
+    ? (demoData!.ageDistribution as Array<{ ageGroup: string; count: number; percentage: number }>)
+    : [];
+
+  const ageDistribution = rawAge.map((item) => ({
+    ageGroup: item.ageGroup,
+    categoryLabel: ageCategoryLabel(item.ageGroup),
+    count: item.count,
+    percentage: item.percentage,
+  }));
+
+  const rawColleges = Array.isArray(demoData?.collegeDistribution)
+    ? (demoData!.collegeDistribution as Array<{ collegeName: string; count: number; percentage: number }>)
+    : [];
+
+  const collegeDistribution: HSCCollegeDistributionItem[] = rawColleges.map((item, idx) => ({
+    id: `col-${idx}`,
+    collegeName: item.collegeName,
+    shortCode: makeShortCode(item.collegeName),
+    district: 'Bangladesh',
+    count: item.count,
+    percentage: item.percentage,
+    color: CHART_COLORS[idx % CHART_COLORS.length],
+  }));
+
+  // ── 3. Exam Stats ──────────────────────────────────────────────────────────
+  const examStatsData =
+    examStatsRes.status === 'fulfilled' ? (examStatsRes.value?.data as Record<string, unknown> | null) : null;
+
+  const byStatus = (examStatsData?.byStatus as Record<string, number>) ?? {};
+  const centresData = (examStatsData?.centres as Record<string, number>) ?? {};
+  const pendingData = (examStatsData?.pendingResults as Record<string, number>) ?? {};
+
+  // Fallback: derive exam status counts from /exams if stats endpoint unavailable
+  const exams =
+    examsRes.status === 'fulfilled' && Array.isArray(examsRes.value?.data)
+      ? examsRes.value.data as Exam[]
+      : [];
+
+  const totalExams            = byStatus.TOTAL ?? exams.length;
+  const openRegistrationExams = byStatus.REGISTRATION_OPEN ?? exams.filter((e) => e.status === 'REGISTRATION_OPEN').length;
+  const ongoingExams          = (byStatus.ONGOING ?? 0) + (byStatus.UPCOMING ?? 0) ||
+    exams.filter((e) => e.status === 'ONGOING' || e.status === 'UPCOMING').length;
+  const completedExams        = (byStatus.COMPLETED ?? 0) + (byStatus.RESULT_PUBLISHED ?? 0) ||
+    exams.filter((e) => e.status === 'COMPLETED' || e.status === 'RESULT_PUBLISHED').length;
+  const draftExams            = byStatus.DRAFT ?? exams.filter((e) => e.status === 'DRAFT').length;
+
+  const totalCentres          = centresData.total      ?? 0;
+  const totalRooms            = centresData.totalRooms ?? 0;
+  const totalCapacity         = centresData.totalCapacity ?? 0;
+  const pendingResultsCount   = pendingData.examCount      ?? exams.filter((e) => e.status === 'COMPLETED').length;
+  const pendingResultsCandidates = pendingData.candidateCount ?? 0;
+
+  // ── 4. Audit Logs ──────────────────────────────────────────────────────────
+  const rawAuditLogs =
+    auditLogsRes.status === 'fulfilled'
+      ? Array.isArray(auditLogsRes.value?.data)
+        ? auditLogsRes.value.data
+        : []
+      : [];
+
+  const recentAuditLogs = (rawAuditLogs as Array<Record<string, unknown>>).map((log, idx) => ({
+    id:           String(log.id           ?? `log-${idx}`),
+    action:       String(log.action       ?? ''),
+    category:     String(log.category     ?? 'SYSTEM_CONFIG') as any,
+    actorName:    String(log.actorName    ?? 'System'),
+    actorRole:    String(log.actorRole    ?? 'Admin'),
+    targetEntity: String(log.targetEntity ?? ''),
+    ipAddress:    String(log.ipAddress    ?? ''),
+    location:     String(log.location     ?? ''),
+    status:       String(log.status       ?? 'SUCCESS') as any,
+    timestamp:    String(log.createdAt    ?? log.timestamp ?? new Date().toISOString()),
+    details:      log.details ? String(log.details) : undefined,
+  }));
+
+  return {
+    stats: {
+      totalStudents,
+      activeStudents,
+      pendingStudents,
+      suspendedStudents,
+      monthlyGrowthPercent: 0,
+      totalExams,
+      openRegistrationExams,
+      ongoingExams,
+      completedExams,
+      draftExams,
+      totalCentres,
+      totalRooms,
+      totalCapacity,
+      pendingResultsCount,
+      pendingResultsCandidates,
+    },
+    ageDistribution,
+    locationDistribution: MOCK_ADMIN_OVERVIEW_DATA.locationDistribution, // Requires structured `division` field on backend
+    collegeDistribution,
+    recentAuditLogs,
+    lastUpdated: new Date().toISOString(),
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Admin Student List (used in /students admin page)
+// ─────────────────────────────────────────────────────────────────────────────
+export async function getAdminStudentList(
+  token: string,
+  page = 1,
+  limit = 20,
+  search?: string,
+  status?: string
+) {
+  try {
+    const res = await serverFetch<Student[]>('/students/admin/list', {
+      token,
+      params: { page, limit, search, status: status !== 'ALL' ? status : undefined },
+      cache: 'no-store',
+    });
+    if (res?.data && Array.isArray(res.data)) return res;
   } catch (err) {
-    console.warn('Could not aggregate live admin overview metrics, using fallback:', err);
-    return MOCK_ADMIN_OVERVIEW_DATA;
+    console.error('GET /students/admin/list failed:', err);
   }
+  return { statusCode: 200, success: true, data: [], meta: { page, limit, total: 0, totalPages: 1 } };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Helpers
+// ─────────────────────────────────────────────────────────────────────────────
+function ageCategoryLabel(ageGroup: string): string {
+  const map: Record<string, string> = {
+    '< 17': 'Early HSC Candidates',
+    '<17':  'Early HSC Candidates',
+    '17':   'Standard HSC Examinees',
+    '18':   '1st Time Medical Admission Seekers',
+    '19':   'Medical Admission 2nd Timers',
+    '20+':  'Special Quota & 2nd Timers',
+  };
+  return map[ageGroup] ?? ageGroup;
+}
+
+function makeShortCode(name: string): string {
+  return name
+    .split(/\s+/)
+    .filter((w) => /^[A-Z]/.test(w))
+    .map((w) => w[0])
+    .join('')
+    .slice(0, 5)
+    .toUpperCase() || name.slice(0, 4).toUpperCase();
 }

@@ -9,18 +9,44 @@ export async function getStudentMe(token: string): Promise<Student> {
 }
 
 /**
- * PATCH /students/me - Update candidate's own profile
+ * PATCH /students/me - Update candidate's own profile according to official API specification:
+ * Allowed fields: fatherName, motherName, presentAddress, permanentAddress, photoUrl, signatureUrl, collegeName
  */
 export async function updateStudentMe(
   token: string,
   data: Partial<StudentAdminFormData>
 ): Promise<Student> {
+  const allowedPayload: Record<string, string> = {};
+
+  if (data.fatherName !== undefined && data.fatherName.trim() !== '') {
+    allowedPayload.fatherName = data.fatherName.trim();
+  }
+  if (data.motherName !== undefined && data.motherName.trim() !== '') {
+    allowedPayload.motherName = data.motherName.trim();
+  }
+  if (data.presentAddress !== undefined && data.presentAddress.trim() !== '') {
+    allowedPayload.presentAddress = data.presentAddress.trim();
+  }
+  if (data.permanentAddress !== undefined && data.permanentAddress.trim() !== '') {
+    allowedPayload.permanentAddress = data.permanentAddress.trim();
+  }
+  if (data.collegeName !== undefined && data.collegeName.trim() !== '') {
+    allowedPayload.collegeName = data.collegeName.trim();
+  }
+  if (data.photoUrl && data.photoUrl.trim().startsWith('http')) {
+    allowedPayload.photoUrl = data.photoUrl.trim();
+  }
+  if (data.signatureUrl && data.signatureUrl.trim().startsWith('http')) {
+    allowedPayload.signatureUrl = data.signatureUrl.trim();
+  }
+
   const res = await serverFetch<Student>('/students/me', {
     token,
     method: 'PATCH',
-    body: JSON.stringify(data),
+    body: JSON.stringify(allowedPayload),
     cache: 'no-store',
   });
+
   return res.data;
 }
 
