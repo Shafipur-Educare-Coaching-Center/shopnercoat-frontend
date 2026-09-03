@@ -145,6 +145,8 @@ export function CompleteProfileWizard() {
       if (res.success && res.url) {
         setPhotoUrl(res.url);
         toast.success('Candidate Photo Uploaded');
+      } else if (!res.success && res.error) {
+        toast.error(res.error);
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Photo upload failed';
@@ -168,6 +170,8 @@ export function CompleteProfileWizard() {
       if (res.success && res.url) {
         setSignatureUrl(res.url);
         toast.success('Candidate Signature Uploaded');
+      } else if (!res.success && res.error) {
+        toast.error(res.error);
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Signature upload failed';
@@ -202,6 +206,9 @@ export function CompleteProfileWizard() {
           toast.success('Profile Completed!', {
             description: `Roll Number ${res.data.rollNumber} assigned.`,
           });
+        } else if (!res.success && res.error) {
+          toast.error('Submission Error', { description: res.error });
+          setStepErrors([res.error]);
         }
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : 'Failed to complete profile';

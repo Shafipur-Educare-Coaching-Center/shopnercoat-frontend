@@ -10,22 +10,22 @@ export async function uploadAction(formData: FormData) {
     cookieStore.get('accessToken')?.value;
 
   if (!token) {
-    throw new Error('Authentication required for file upload');
+    return { success: false, error: 'Authentication required for file upload' };
   }
 
   const file = formData.get('file') as File | null;
   if (!file || !(file instanceof File) || file.size === 0) {
-    throw new Error('Please select a valid image file');
+    return { success: false, error: 'Please select a valid image file' };
   }
 
   // Max 5MB check
   if (file.size > 5 * 1024 * 1024) {
-    throw new Error('File size exceeds the 5MB limit');
+    return { success: false, error: 'File size exceeds the 5MB limit' };
   }
 
   const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
   if (!allowedTypes.includes(file.type.toLowerCase())) {
-    throw new Error('Only JPEG, PNG, and WEBP images are supported');
+    return { success: false, error: 'Only JPEG, PNG, and WEBP images are supported' };
   }
 
   const forwardFormData = new FormData();
@@ -47,12 +47,12 @@ export async function uploadAction(formData: FormData) {
   const data = await res.json().catch(() => ({}));
 
   if (!res.ok) {
-    throw new Error(data.message || 'File upload failed. Please try again.');
+    return { success: false, error: data.message || 'File upload failed. Please try again.' };
   }
 
   const uploadData = data?.data;
   if (!uploadData?.url) {
-    throw new Error('Upload succeeded but no image URL was returned');
+    return { success: false, error: 'Upload succeeded but no image URL was returned' };
   }
 
   return {

@@ -12,7 +12,7 @@ export async function completeProfileAction(values: CompleteProfileFormValues) {
   const parsed = completeProfileSchema.safeParse(values);
   if (!parsed.success) {
     const errorMsg = parsed.error.issues.map((i) => i.message).join(', ');
-    throw new Error(errorMsg || 'Please correct all profile fields');
+    return { success: false, error: errorMsg || 'Please correct all profile fields' };
   }
 
   const cookieStore = await cookies();
@@ -21,7 +21,7 @@ export async function completeProfileAction(values: CompleteProfileFormValues) {
     cookieStore.get('accessToken')?.value;
 
   if (!token) {
-    throw new Error('Verification session expired. Please verify your phone number again.');
+    return { success: false, error: 'Verification session expired. Please verify your phone number again.' };
   }
 
   const payload = {
@@ -53,21 +53,22 @@ export async function completeProfileAction(values: CompleteProfileFormValues) {
 
   if (!res.ok) {
     if (res.status === 409) {
-      throw new Error('Student profile has already been completed.');
+      return { success: false, error: 'Student profile has already been completed.' };
     }
     if (data.errors && Array.isArray(data.errors) && data.errors.length > 0) {
-      throw new Error(
-        data.errors
+      return {
+        success: false,
+        error: data.errors
           .map((e: { field?: string; message: string }) => e.message || `${e.field}: error`)
           .join(', ')
-      );
+      };
     }
-    throw new Error(data.message || 'Failed to complete student profile.');
+    return { success: false, error: data.message || 'Failed to complete student profile.' };
   }
 
   const studentData = data?.data;
   if (!studentData) {
-    throw new Error('Profile was saved but student registration details were not returned');
+    return { success: false, error: 'Profile was saved but student registration details were not returned' };
   }
 
   // Clear the single-use verifiedToken
