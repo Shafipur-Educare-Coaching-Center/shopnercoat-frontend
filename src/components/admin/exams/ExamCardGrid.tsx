@@ -109,6 +109,23 @@ export function ExamCardGrid({
     }
   };
 
+  const formatRegWindow = (startIso?: string, endIso?: string) => {
+    if (!endIso) return 'Open';
+    try {
+      const endD = new Date(endIso);
+      const startD = startIso ? new Date(startIso) : null;
+      const timeFmt = new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+      const dateFmt = new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: 'short' });
+
+      if (startD && startD.toDateString() === endD.toDateString()) {
+        return `${dateFmt.format(endD)}, ${timeFmt.format(startD)} – ${timeFmt.format(endD)}`;
+      }
+      return `${dateFmt.format(endD)}, ${timeFmt.format(endD)}`;
+    } catch {
+      return endIso.split('T')[0];
+    }
+  };
+
   if (exams.length === 0) {
     return (
       <div className="w-full rounded-3xl bg-white/95 border border-white/90 shadow-[0_8px_24px_rgba(20,40,90,0.06)] p-12 text-center select-none">
@@ -222,10 +239,10 @@ export function ExamCardGrid({
 
                 <div className="flex items-center justify-between text-slate-700 border-t border-slate-200/50 pt-1.5">
                   <span className="flex items-center gap-1.5 font-medium text-slate-500">
-                    <span>Reg. Deadline:</span>
+                    <span>Reg. Window:</span>
                   </span>
                   <span className="text-[11px] font-semibold text-amber-700">
-                    {formatDate(exam.registrationEndAt)}
+                    {formatRegWindow(exam.registrationStartAt, exam.registrationEndAt)}
                   </span>
                 </div>
               </div>

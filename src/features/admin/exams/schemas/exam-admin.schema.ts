@@ -31,7 +31,7 @@ export const examAdminFormSchema = z
       .min(1, 'End time is required (e.g., 11:15 AM)'),
     registrationStartAt: z
       .string()
-      .min(1, 'Registration start date is required'),
+      .min(1, 'Registration start date & time is required'),
     registrationEndAt: z
       .string()
       .min(1, 'Registration deadline is required'),
@@ -54,7 +54,17 @@ export const examAdminFormSchema = z
   .refine((data) => data.passMarks <= data.totalMarks, {
     message: 'Pass marks cannot be greater than Total marks',
     path: ['passMarks'],
-  });
+  })
+  .refine(
+    (data) => {
+      if (!data.registrationStartAt || !data.registrationEndAt) return true;
+      return new Date(data.registrationStartAt).getTime() < new Date(data.registrationEndAt).getTime();
+    },
+    {
+      message: 'Registration deadline must be after registration start time',
+      path: ['registrationEndAt'],
+    }
+  );
 
 export type ExamAdminFormValues = z.infer<typeof examAdminFormSchema>;
 

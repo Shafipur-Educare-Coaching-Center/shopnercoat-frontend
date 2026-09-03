@@ -1,9 +1,20 @@
 'use client';
 
-import React, { useState, useEffect, useTransition } from 'react';
+import React, { useEffect, useTransition } from 'react';
 import { useForm, Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { X, Loader2, FileText, Calendar, ShieldCheck, Save, Target } from 'lucide-react';
+import {
+  X,
+  BookOpen,
+  Calendar,
+  Clock,
+  Target,
+  FileText,
+  ShieldCheck,
+  Sparkles,
+  Loader2,
+  CheckCircle2,
+} from 'lucide-react';
 import { toast } from 'sonner';
 import {
   examAdminFormSchema,
@@ -11,13 +22,45 @@ import {
 } from '@/features/admin/exams/schemas/exam-admin.schema';
 import { createExamAction } from '@/features/admin/exams/actions/createExamAction';
 import { updateExamAction } from '@/features/admin/exams/actions/updateExamAction';
-import { Exam } from '@/types/exam.types';
+import { Exam, ExamStatus } from '@/types/exam.types';
 
 interface ExamFormDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  exam?: Exam | null; // If provided, edit mode
-  onSuccess?: (savedExam?: Exam, isEdit?: boolean) => void;
+  exam?: Exam | null;
+  onSuccess?: (exam: Exam, isEdit: boolean) => void;
+}
+
+function toLocalInputDateTime(isoStr?: string): string {
+  if (!isoStr) return '';
+  try {
+    const d = new Date(isoStr);
+    if (isNaN(d.getTime())) return '';
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const y = d.getFullYear();
+    const m = pad(d.getMonth() + 1);
+    const day = pad(d.getDate());
+    const h = pad(d.getHours());
+    const min = pad(d.getMinutes());
+    return `${y}-${m}-${day}T${h}:${min}`;
+  } catch {
+    return '';
+  }
+}
+
+function toLocalInputDate(isoStr?: string): string {
+  if (!isoStr) return '';
+  try {
+    const d = new Date(isoStr);
+    if (isNaN(d.getTime())) return '';
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const y = d.getFullYear();
+    const m = pad(d.getMonth() + 1);
+    const day = pad(d.getDate());
+    return `${y}-${m}-${day}`;
+  } catch {
+    return '';
+  }
 }
 
 export function ExamFormDialog({
@@ -26,13 +69,15 @@ export function ExamFormDialog({
   exam,
   onSuccess,
 }: ExamFormDialogProps) {
-  const [activeTab, setActiveTab] = useState<'DETAILS' | 'SCHEDULE' | 'RULES'>('DETAILS');
   const [isPending, startTransition] = useTransition();
+  const [activeTab, setActiveTab] = React.useState<'BASIC' | 'SCHEDULE' | 'RULES'>('BASIC');
+
   const isEditMode = Boolean(exam);
 
   const {
     register,
     handleSubmit,
+    setValue,
     reset,
     formState: { errors },
   } = useForm<ExamAdminFormValues>({
@@ -62,15 +107,19 @@ export function ExamFormDialog({
         description: exam.description || '',
         totalMarks: exam.totalMarks || 100,
         passMarks: exam.passMarks || 40,
-        examDate: exam.examDate ? exam.examDate.split('T')[0] : '',
+        examDate: toLocalInputDate(exam.examDate),
         startTime: exam.startTime || '10:00 AM',
         endTime: exam.endTime || '11:15 AM',
-        registrationStartAt: exam.registrationStartAt ? exam.registrationStartAt.split('T')[0] : '',
-        registrationEndAt: exam.registrationEndAt ? exam.registrationEndAt.split('T')[0] : '',
+        registrationStartAt: toLocalInputDateTime(exam.registrationStartAt),
+        registrationEndAt: toLocalInputDateTime(exam.registrationEndAt),
         instructions: exam.instructions || '',
         status: exam.status || 'DRAFT',
       });
     } else {
+      const now = new Date();
+      const pad = (n: number) => String(n).padStart(2, '0');
+      const todayStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+
       reset({
         title: '',
         code: '',
@@ -80,8 +129,8 @@ export function ExamFormDialog({
         examDate: '',
         startTime: '10:00 AM',
         endTime: '11:15 AM',
-        registrationStartAt: '',
-        registrationEndAt: '',
+        registrationStartAt: `${todayStr}T12:00`,
+        registrationEndAt: `${todayStr}T20:00`,
         instructions:
           '1. Bring original Admit Card & HSC Registration Card.\n2. Negative marking 0.25 mark per incorrect answer.\n3. Mobile phones and smartwatches are strictly prohibited.',
         status: 'DRAFT',
@@ -91,13 +140,21 @@ export function ExamFormDialog({
 
   if (!isOpen) return null;
 
+  const setSameDayWindowPreset = () => {
+    const now = new Date();
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const todayStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+    setValue('registrationStartAt', `${todayStr}T12:00`);
+    setValue('registrationEndAt', `${todayStr}T20:00`);
+  };
+
   const onSubmit = (values: ExamAdminFormValues) => {
     startTransition(async () => {
       if (isEditMode && exam) {
         const res = await updateExamAction(exam.id, values);
         if (res.success) {
           toast.success('Model Test Updated', { description: res.message });
-          onSuccess?.(res.exam, true);
+          if (res.exam) onSuccess?.(res.exam, true);
           onClose();
         } else {
           toast.error('Update Failed', {
@@ -108,7 +165,7 @@ export function ExamFormDialog({
         const res = await createExamAction(values);
         if (res.success) {
           toast.success('Model Test Created', { description: res.message });
-          onSuccess?.(res.exam, false);
+          if (res.exam) onSuccess?.(res.exam, false);
           onClose();
         } else {
           toast.error('Creation Failed', {
@@ -120,154 +177,103 @@ export function ExamFormDialog({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in-0 duration-200">
-      <div className="relative w-full max-w-2xl max-h-[90vh] overflow-hidden rounded-3xl bg-white shadow-[0_20px_60px_rgba(15,23,42,0.2)] border border-slate-100 flex flex-col select-none">
-        
-        {/* Modal Header */}
-        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
-          <div>
-            <h3 className="font-heading font-black text-lg text-slate-900">
-              {isEditMode ? 'Edit Model Test' : 'Create New Model Test'}
-            </h3>
-            <p className="text-xs text-slate-500 mt-0.5">
-              {isEditMode
-                ? `Updating exam schedule, pass marks, and instructions for [${exam?.code}]`
-                : 'Configure exam parameters, marks distribution, registration windows, and test instructions.'}
-            </p>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in-50 duration-200">
+      <div className="relative w-full max-w-2xl bg-white rounded-3xl border border-slate-200 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+        {/* Header */}
+        <div className="flex items-center justify-between p-6 border-b border-slate-100 bg-slate-50/50">
+          <div className="flex items-center gap-2.5">
+            <div className="size-10 rounded-2xl bg-teal-50 border border-teal-200/80 flex items-center justify-center text-teal-700">
+              <BookOpen className="size-5" />
+            </div>
+            <div>
+              <h3 className="font-heading font-black text-lg text-slate-900">
+                {isEditMode ? 'Edit Medical Model Test' : 'Create New Model Test'}
+              </h3>
+              <p className="text-xs text-slate-500">
+                Configure test parameters, same-day registration windows, syllabus &amp; negative marking.
+              </p>
+            </div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="size-8 rounded-full bg-slate-200/60 hover:bg-slate-200 flex items-center justify-center text-slate-600 transition-colors cursor-pointer"
+            className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
           >
-            <X className="size-4" />
+            <X className="size-5" />
           </button>
         </div>
 
-        {/* Tab Navigation */}
-        <div className="flex border-b border-slate-100 px-6 bg-slate-50/40 text-xs font-semibold">
+        {/* Tab Switcher */}
+        <div className="flex items-center border-b border-slate-100 px-6 pt-2 bg-white gap-2 text-xs font-bold">
           <button
             type="button"
-            onClick={() => setActiveTab('DETAILS')}
-            className={`py-3 px-4 flex items-center gap-1.5 border-b-2 transition-colors cursor-pointer ${
-              activeTab === 'DETAILS'
-                ? 'border-teal-600 text-teal-700 font-bold'
-                : 'border-transparent text-slate-400 hover:text-slate-700'
+            onClick={() => setActiveTab('BASIC')}
+            className={`pb-2.5 px-3 border-b-2 transition-colors cursor-pointer ${
+              activeTab === 'BASIC'
+                ? 'border-teal-600 text-teal-700'
+                : 'border-transparent text-slate-500 hover:text-slate-800'
             }`}
           >
-            <Target className="size-3.5" />
-            <span>1. Test Details & Marks</span>
+            1. Basic Specs &amp; Code
           </button>
-
           <button
             type="button"
             onClick={() => setActiveTab('SCHEDULE')}
-            className={`py-3 px-4 flex items-center gap-1.5 border-b-2 transition-colors cursor-pointer ${
+            className={`pb-2.5 px-3 border-b-2 transition-colors cursor-pointer ${
               activeTab === 'SCHEDULE'
-                ? 'border-teal-600 text-teal-700 font-bold'
-                : 'border-transparent text-slate-400 hover:text-slate-700'
+                ? 'border-teal-600 text-teal-700'
+                : 'border-transparent text-slate-500 hover:text-slate-800'
             }`}
           >
-            <Calendar className="size-3.5" />
-            <span>2. Schedule & Window</span>
+            2. Schedule &amp; Reg. Window
           </button>
-
           <button
             type="button"
             onClick={() => setActiveTab('RULES')}
-            className={`py-3 px-4 flex items-center gap-1.5 border-b-2 transition-colors cursor-pointer ${
+            className={`pb-2.5 px-3 border-b-2 transition-colors cursor-pointer ${
               activeTab === 'RULES'
-                ? 'border-teal-600 text-teal-700 font-bold'
-                : 'border-transparent text-slate-400 hover:text-slate-700'
+                ? 'border-teal-600 text-teal-700'
+                : 'border-transparent text-slate-500 hover:text-slate-800'
             }`}
           >
-            <FileText className="size-3.5" />
-            <span>3. Instructions & Status</span>
+            3. Instructions &amp; Status
           </button>
         </div>
 
         {/* Form Body */}
-        <form onSubmit={handleSubmit(onSubmit)} className="flex-1 overflow-y-auto p-6 flex flex-col gap-4">
-          
-          {/* TAB 1: Details & Marks */}
-          {activeTab === 'DETAILS' && (
+        <form onSubmit={handleSubmit(onSubmit)} className="flex-1 overflow-y-auto p-6 space-y-4">
+          {/* TAB 1: Basic Specs */}
+          {activeTab === 'BASIC' && (
             <div className="space-y-4 text-xs">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                {/* Title */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div className="sm:col-span-2">
-                  <label className="font-semibold text-slate-700 block mb-1">
-                    Exam Title *
-                  </label>
+                  <label className="font-semibold text-slate-700 block mb-1">Exam Title *</label>
                   <input
                     type="text"
-                    placeholder="e.g. Medical Admission Grand Model Test - 01"
+                    placeholder="e.g., National Medical Mock Test 06"
                     {...register('title')}
                     className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 outline-hidden focus:ring-2 focus:ring-teal-500"
                   />
-                  {errors.title && (
-                    <p className="text-rose-500 text-[11px] mt-1">{errors.title.message}</p>
-                  )}
+                  {errors.title && <p className="text-rose-500 text-[11px] mt-1">{errors.title.message}</p>}
                 </div>
 
-                {/* Unique Code */}
                 <div>
-                  <label className="font-semibold text-slate-700 block mb-1">
-                    Exam Code *
-                  </label>
+                  <label className="font-semibold text-slate-700 block mb-1">Exam Code *</label>
                   <input
                     type="text"
-                    placeholder="MED-GMT-2026-01"
+                    placeholder="NMT-06"
                     {...register('code')}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono uppercase text-slate-900 outline-hidden focus:ring-2 focus:ring-teal-500"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold text-slate-900 uppercase outline-hidden focus:ring-2 focus:ring-teal-500"
                   />
-                  {errors.code && (
-                    <p className="text-rose-500 text-[11px] mt-1">{errors.code.message}</p>
-                  )}
+                  {errors.code && <p className="text-rose-500 text-[11px] mt-1">{errors.code.message}</p>}
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* Total Marks */}
-                <div>
-                  <label className="font-semibold text-slate-700 block mb-1">
-                    Total Marks *
-                  </label>
-                  <input
-                    type="number"
-                    placeholder="100"
-                    {...register('totalMarks')}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 outline-hidden focus:ring-2 focus:ring-teal-500"
-                  />
-                  {errors.totalMarks && (
-                    <p className="text-rose-500 text-[11px] mt-1">{errors.totalMarks.message}</p>
-                  )}
-                </div>
-
-                {/* Pass Marks */}
-                <div>
-                  <label className="font-semibold text-slate-700 block mb-1">
-                    Pass Marks *
-                  </label>
-                  <input
-                    type="number"
-                    placeholder="40"
-                    {...register('passMarks')}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 outline-hidden focus:ring-2 focus:ring-teal-500"
-                  />
-                  {errors.passMarks && (
-                    <p className="text-rose-500 text-[11px] mt-1">{errors.passMarks.message}</p>
-                  )}
-                </div>
-              </div>
-
-              {/* Description */}
               <div>
-                <label className="font-semibold text-slate-700 block mb-1">
-                  Exam Description / Subject Syllabus *
-                </label>
+                <label className="font-semibold text-slate-700 block mb-1">Description &amp; Syllabus Coverage *</label>
                 <textarea
                   rows={3}
-                  placeholder="Full syllabus 100-mark mock test covering Biology, Chemistry, Physics, English, and GK..."
+                  placeholder="Full-length medical admission mock test covering Botany, Zoology, Chemistry, Physics, English & General Knowledge."
                   {...register('description')}
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 outline-hidden focus:ring-2 focus:ring-teal-500"
                 />
@@ -275,16 +281,45 @@ export function ExamFormDialog({
                   <p className="text-rose-500 text-[11px] mt-1">{errors.description.message}</p>
                 )}
               </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-4 rounded-2xl bg-teal-50/50 border border-teal-100">
+                <div>
+                  <label className="font-semibold text-teal-900 block mb-1">Total Marks *</label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={1000}
+                    {...register('totalMarks')}
+                    className="w-full px-3 py-2 bg-white border border-teal-200 rounded-xl text-xs font-mono font-bold text-slate-900 outline-hidden focus:ring-2 focus:ring-teal-500"
+                  />
+                  {errors.totalMarks && (
+                    <p className="text-rose-500 text-[11px] mt-1">{errors.totalMarks.message}</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="font-semibold text-teal-900 block mb-1">Pass Marks Threshold *</label>
+                  <input
+                    type="number"
+                    min={1}
+                    {...register('passMarks')}
+                    className="w-full px-3 py-2 bg-white border border-teal-200 rounded-xl text-xs font-mono font-bold text-slate-900 outline-hidden focus:ring-2 focus:ring-teal-500"
+                  />
+                  {errors.passMarks && (
+                    <p className="text-rose-500 text-[11px] mt-1">{errors.passMarks.message}</p>
+                  )}
+                </div>
+              </div>
             </div>
           )}
 
-          {/* TAB 2: Schedule & Registration */}
+          {/* TAB 2: Schedule & Registration Window */}
           {activeTab === 'SCHEDULE' && (
             <div className="space-y-4 text-xs">
-              <div className="p-4 rounded-2xl bg-teal-50/40 border border-teal-100 space-y-3">
-                <h4 className="font-heading font-bold text-teal-800 uppercase text-[11px] tracking-wider flex items-center gap-1.5">
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-3">
+                <h4 className="font-heading font-bold text-slate-800 uppercase text-[11px] tracking-wider flex items-center gap-1.5">
                   <Calendar className="size-3.5 text-teal-600" />
-                  <span>Exam Session Date & Time</span>
+                  <span>Exam Execution Date &amp; Time Slot</span>
                 </h4>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -328,17 +363,32 @@ export function ExamFormDialog({
                 </div>
               </div>
 
-              <div className="p-4 rounded-2xl bg-amber-50/40 border border-amber-100 space-y-3">
-                <h4 className="font-heading font-bold text-amber-800 uppercase text-[11px] tracking-wider flex items-center gap-1.5">
-                  <ShieldCheck className="size-3.5 text-amber-600" />
-                  <span>Candidate Registration Window</span>
-                </h4>
+              {/* Registration Window (Allows same-day hour-level registration) */}
+              <div className="p-4 rounded-2xl bg-amber-50/50 border border-amber-200/80 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-heading font-bold text-amber-900 uppercase text-[11px] tracking-wider flex items-center gap-1.5">
+                    <ShieldCheck className="size-3.5 text-amber-600" />
+                    <span>Candidate Registration Window</span>
+                  </h4>
+
+                  <button
+                    type="button"
+                    onClick={setSameDayWindowPreset}
+                    className="text-[11px] font-bold text-amber-800 bg-amber-100/80 hover:bg-amber-200/80 px-2.5 py-0.5 rounded-lg transition-colors cursor-pointer"
+                  >
+                    Set Today 12 PM – 8 PM
+                  </button>
+                </div>
+
+                <p className="text-[11px] text-amber-800">
+                  Allows same-day or multi-day registration for specific hours (e.g. registration available today from 12:00 PM to 08:00 PM for tomorrow&apos;s mock test).
+                </p>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="font-semibold text-slate-700 block mb-1">Registration Opens *</label>
+                    <label className="font-semibold text-slate-700 block mb-1">Registration Opens (Date &amp; Time) *</label>
                     <input
-                      type="date"
+                      type="datetime-local"
                       {...register('registrationStartAt')}
                       className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-900 outline-hidden focus:ring-2 focus:ring-teal-500"
                     />
@@ -348,9 +398,9 @@ export function ExamFormDialog({
                   </div>
 
                   <div>
-                    <label className="font-semibold text-slate-700 block mb-1">Registration Deadline *</label>
+                    <label className="font-semibold text-slate-700 block mb-1">Registration Deadline (Date &amp; Time) *</label>
                     <input
-                      type="date"
+                      type="datetime-local"
                       {...register('registrationEndAt')}
                       className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-900 outline-hidden focus:ring-2 focus:ring-teal-500"
                     />
@@ -368,7 +418,7 @@ export function ExamFormDialog({
             <div className="space-y-4 text-xs">
               <div>
                 <label className="font-semibold text-slate-700 block mb-1">
-                  Examination Instructions & Negative Marking Rules *
+                  Examination Instructions &amp; Negative Marking Rules *
                 </label>
                 <textarea
                   rows={4}
@@ -382,82 +432,79 @@ export function ExamFormDialog({
               </div>
 
               <div>
-                <label className="font-semibold text-slate-700 block mb-1">
-                  Lifecycle Status
-                </label>
+                <label className="font-semibold text-slate-700 block mb-1">Initial Status</label>
                 <select
                   {...register('status')}
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 outline-hidden focus:ring-2 focus:ring-teal-500"
                 >
-                  <option value="DRAFT">DRAFT (Hidden from candidates)</option>
-                  <option value="REGISTRATION_OPEN">REGISTRATION_OPEN (Accepting applicants)</option>
-                  {isEditMode && (
-                    <>
-                      <option value="REGISTRATION_CLOSED">REGISTRATION_CLOSED (Awaiting seat allocation)</option>
-                      <option value="UPCOMING">UPCOMING (Admit cards ready)</option>
-                      <option value="ONGOING">ONGOING (Test underway)</option>
-                      <option value="COMPLETED">COMPLETED (Evaluation)</option>
-                      <option value="RESULT_PUBLISHED">RESULT_PUBLISHED (Scores live)</option>
-                      <option value="CANCELLED">CANCELLED</option>
-                    </>
-                  )}
+                  <option value="DRAFT">DRAFT (Testing &amp; Question Paper Preparation)</option>
+                  <option value="REGISTRATION_OPEN">REGISTRATION_OPEN (Live Candidate Registration)</option>
+                  <option value="REGISTRATION_CLOSED">REGISTRATION_CLOSED (Registration Ended)</option>
+                  <option value="UPCOMING">UPCOMING (Admit Cards Issued &amp; Seats Allocated)</option>
+                  <option value="ONGOING">ONGOING (Test in Session)</option>
+                  <option value="COMPLETED">COMPLETED (Pending Result Evaluation)</option>
+                  <option value="RESULT_PUBLISHED">RESULT_PUBLISHED (Scorecards &amp; Merit Published)</option>
+                  <option value="CANCELLED">CANCELLED</option>
                 </select>
+                {errors.status && <p className="text-rose-500 text-[11px] mt-1">{errors.status.message}</p>}
               </div>
             </div>
           )}
 
-          {/* Form Actions Footer */}
-          <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition-colors cursor-pointer"
-            >
-              Cancel
-            </button>
+          {/* Footer Buttons */}
+          <div className="flex items-center justify-between pt-4 border-t border-slate-100">
+            <div className="flex items-center gap-2">
+              {activeTab !== 'BASIC' && (
+                <button
+                  type="button"
+                  onClick={() => setActiveTab(activeTab === 'RULES' ? 'SCHEDULE' : 'BASIC')}
+                  className="px-3.5 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-600 font-bold text-xs transition-colors"
+                >
+                  Previous
+                </button>
+              )}
+              {activeTab !== 'RULES' && (
+                <button
+                  type="button"
+                  onClick={() => setActiveTab(activeTab === 'BASIC' ? 'SCHEDULE' : 'RULES')}
+                  className="px-3.5 py-2 rounded-xl bg-teal-50 hover:bg-teal-100 text-teal-700 font-bold text-xs transition-colors"
+                >
+                  Next Step
+                </button>
+              )}
+            </div>
 
             <div className="flex items-center gap-2">
-              {activeTab === 'DETAILS' && (
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('SCHEDULE')}
-                  className="px-4 py-2 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white font-semibold text-xs cursor-pointer"
-                >
-                  Next: Schedule &rarr;
-                </button>
-              )}
-              {activeTab === 'SCHEDULE' && (
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('RULES')}
-                  className="px-4 py-2 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white font-semibold text-xs cursor-pointer"
-                >
-                  Next: Instructions &rarr;
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-600 font-semibold text-xs transition-colors"
+              >
+                Cancel
+              </button>
               <button
                 type="submit"
                 disabled={isPending}
-                className="inline-flex items-center gap-1.5 px-5 py-2 rounded-2xl bg-teal-600 hover:bg-teal-500 text-white font-bold text-xs shadow-md transition-all active:scale-95 disabled:opacity-60 cursor-pointer"
+                className="px-5 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs shadow-xs transition-colors flex items-center gap-1.5 disabled:opacity-50"
               >
                 {isPending ? (
                   <>
-                    <Loader2 className="size-3.5 animate-spin text-white" />
+                    <Loader2 className="size-3.5 animate-spin" />
                     <span>Saving...</span>
                   </>
                 ) : (
                   <>
-                    <Save className="size-3.5 text-white" />
-                    <span>{isEditMode ? 'Save Changes' : 'Create Model Test'}</span>
+                    <CheckCircle2 className="size-3.5" />
+                    <span>{isEditMode ? 'Update Model Test' : 'Create Model Test'}</span>
                   </>
                 )}
               </button>
             </div>
           </div>
-
         </form>
-
       </div>
     </div>
   );
 }
+
+export default ExamFormDialog;

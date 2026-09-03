@@ -3,7 +3,6 @@
 import React from 'react';
 import Link from 'next/link';
 import { Exam } from '@/types/exam.types';
-import { ROUTES } from '@/constants/routes';
 import {
   Calendar,
   Clock,
@@ -11,8 +10,9 @@ import {
   FileText,
   CheckCircle2,
   ArrowRight,
-  ShieldAlert,
   Sparkles,
+  AlertCircle,
+  Clock3,
 } from 'lucide-react';
 
 interface ExamCardProps {
@@ -20,6 +20,23 @@ interface ExamCardProps {
   isEnrolled: boolean;
   onOpenSyllabus: (exam: Exam) => void;
   onEnrollClick: (exam: Exam) => void;
+}
+
+function formatRegWindow(startIso?: string, endIso?: string): string {
+  if (!endIso) return 'Open for registration';
+  try {
+    const endD = new Date(endIso);
+    const startD = startIso ? new Date(startIso) : null;
+    const timeFmt = new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+    const dateFmt = new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: 'short' });
+
+    if (startD && startD.toDateString() === endD.toDateString()) {
+      return `${dateFmt.format(endD)}, ${timeFmt.format(startD)} – ${timeFmt.format(endD)}`;
+    }
+    return `${dateFmt.format(endD)}, ${timeFmt.format(endD)}`;
+  } catch {
+    return endIso.split('T')[0];
+  }
 }
 
 export function ExamCard({
@@ -41,7 +58,15 @@ export function ExamCard({
     ? `${exam.startTime} - ${exam.endTime}`
     : '10:00 AM - 11:00 AM';
 
-  const isRegistrationOpen = exam.status === 'REGISTRATION_OPEN' || !exam.status;
+  const now = new Date();
+  const regStart = exam.registrationStartAt ? new Date(exam.registrationStartAt) : null;
+  const regEnd = exam.registrationEndAt ? new Date(exam.registrationEndAt) : null;
+
+  const isBeforeOpen = Boolean(regStart && now < regStart);
+  const isPastDeadline = Boolean(regEnd && now > regEnd);
+
+  const isStatusOpen = exam.status === 'REGISTRATION_OPEN' || !exam.status;
+  const isRegistrationOpen = isStatusOpen && !isBeforeOpen && !isPastDeadline;
 
   return (
     <div className="rounded-[28px] bg-white border border-slate-200/80 p-5 sm:p-6 shadow-[0_10px_30px_rgba(15,118,110,0.04)] hover:shadow-[0_15px_35px_rgba(15,118,110,0.08)] hover:border-teal-300 transition-all flex flex-col justify-between group">
@@ -63,8 +88,14 @@ export function ExamCard({
               <Sparkles className="size-3" />
               Open for Registration
             </span>
+          ) : isBeforeOpen ? (
+            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200 text-[11px] font-bold">
+              <Clock3 className="size-3 text-amber-600" />
+              Opens Soon
+            </span>
           ) : (
-            <span className="text-[11px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">
+            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-full">
+              <AlertCircle className="size-3" />
               Registration Closed
             </span>
           )}
@@ -92,6 +123,14 @@ export function ExamCard({
             <MapPin className="size-4 text-[#00796B] shrink-0" />
             <span className="truncate">Shafipur Central Examination Hall</span>
           </div>
+
+          {/* Registration Window Badge */}
+          {exam.registrationEndAt && (
+            <div className="flex items-center gap-1.5 text-[11px] font-semibold text-amber-800 bg-amber-50/70 border border-amber-200/60 px-2.5 py-1 rounded-xl">
+              <Clock className="size-3 text-amber-600 shrink-0" />
+              <span>Reg Window: <strong>{formatRegWindow(exam.registrationStartAt, exam.registrationEndAt)}</strong></span>
+            </div>
+          )}
         </div>
 
         {/* Specs Grid */}
@@ -138,14 +177,23 @@ export function ExamCard({
             <span>View Hall Pass</span>
             <ArrowRight className="size-3.5" />
           </Link>
+        ) : isBeforeOpen ? (
+          <button
+            type="button"
+            disabled
+            className="flex-1 py-2.5 px-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs font-bold transition-all disabled:opacity-80 flex items-center justify-center gap-1.5 cursor-not-allowed"
+          >
+            <Clock3 className="size-3.5" />
+            <span>Opens Soon</span>
+          </button>
         ) : (
           <button
             type="button"
             onClick={() => onEnrollClick(exam)}
             disabled={!isRegistrationOpen}
-            className="flex-1 py-2.5 px-4 rounded-xl bg-[#00695C] hover:bg-[#00594D] text-white text-xs font-bold transition-all shadow-xs hover:shadow-sm active:scale-[0.99] disabled:opacity-50 flex items-center justify-center gap-1.5 cursor-pointer"
+            className="flex-1 py-2.5 px-4 rounded-xl bg-[#00695C] hover:bg-[#00594D] text-white text-xs font-bold transition-all shadow-xs hover:shadow-sm active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 cursor-pointer"
           >
-            <span>Enroll Now</span>
+            <span>{isPastDeadline ? 'Registration Closed' : 'Enroll Now'}</span>
             <ArrowRight className="size-3.5" />
           </button>
         )}

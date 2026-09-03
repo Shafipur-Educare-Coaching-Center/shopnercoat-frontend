@@ -1,25 +1,45 @@
-﻿import { z } from 'zod';
+import { z } from 'zod';
 
-export const examSchema = z.object({
-  title: z.string().min(5),
-  code: z.string().min(3).toUpperCase(),
-  description: z.string().min(10),
-  totalMarks: z.coerce.number().positive(),
-  passMarks: z.coerce.number().positive(),
-  examDate: z.string(),
-  startTime: z.string(),
-  endTime: z.string(),
-  registrationStartAt: z.string(),
-  registrationEndAt: z.string(),
-  instructions: z.string().min(10),
-  status: z.enum(['DRAFT', 'REGISTRATION_OPEN', 'REGISTRATION_CLOSED', 'UPCOMING', 'ONGOING', 'COMPLETED', 'RESULT_PUBLISHED', 'CANCELLED']).optional(),
-}).refine(data => data.passMarks <= data.totalMarks, {
-  message: "Pass marks cannot exceed total marks",
-  path: ["passMarks"],
-}).refine(data => new Date(data.registrationEndAt) < new Date(data.examDate), {
-  message: "Registration must end before exam date",
-  path: ["registrationEndAt"],
-});
+export const examSchema = z
+  .object({
+    title: z.string().min(5),
+    code: z.string().min(3).toUpperCase(),
+    description: z.string().min(10),
+    totalMarks: z.coerce.number().positive(),
+    passMarks: z.coerce.number().positive(),
+    examDate: z.string(),
+    startTime: z.string(),
+    endTime: z.string(),
+    registrationStartAt: z.string(),
+    registrationEndAt: z.string(),
+    instructions: z.string().min(10),
+    status: z
+      .enum([
+        'DRAFT',
+        'REGISTRATION_OPEN',
+        'REGISTRATION_CLOSED',
+        'UPCOMING',
+        'ONGOING',
+        'COMPLETED',
+        'RESULT_PUBLISHED',
+        'CANCELLED',
+      ])
+      .optional(),
+  })
+  .refine((data) => data.passMarks <= data.totalMarks, {
+    message: 'Pass marks cannot exceed total marks',
+    path: ['passMarks'],
+  })
+  .refine(
+    (data) => {
+      if (!data.registrationStartAt || !data.registrationEndAt) return true;
+      return new Date(data.registrationStartAt).getTime() < new Date(data.registrationEndAt).getTime();
+    },
+    {
+      message: 'Registration deadline must be after registration start time',
+      path: ['registrationEndAt'],
+    }
+  );
 
 export type ExamFormValues = z.infer<typeof examSchema>;
 

@@ -138,7 +138,12 @@ export function AvailableExamsView({ exams, enrollments }: AvailableExamsViewPro
     // Status filter
     const isEnrolled = enrolledExamIds.has(exam.id);
     if (selectedStatus === 'ENROLLED') return isEnrolled;
-    if (selectedStatus === 'OPEN') return exam.status === 'REGISTRATION_OPEN' || !exam.status;
+    if (selectedStatus === 'OPEN') {
+      const now = Date.now();
+      const regEnd = exam.registrationEndAt ? new Date(exam.registrationEndAt).getTime() : Infinity;
+      const isStatusOpen = exam.status === 'REGISTRATION_OPEN' || !exam.status;
+      return isStatusOpen && now <= regEnd;
+    }
     if (selectedStatus === 'UPCOMING') {
       const examTime = exam.examDate ? new Date(exam.examDate).getTime() : 0;
       return examTime >= Date.now();

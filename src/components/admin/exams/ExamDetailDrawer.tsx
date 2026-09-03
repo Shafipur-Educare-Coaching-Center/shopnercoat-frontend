@@ -71,6 +71,25 @@ export function ExamDetailDrawer({
     }
   };
 
+  const formatDateTime = (isoStr: string) => {
+    try {
+      const d = new Date(isoStr);
+      const dateStr = d.toLocaleDateString('en-GB', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+      });
+      const timeStr = d.toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+      });
+      return `${dateStr}, ${timeStr}`;
+    } catch {
+      return isoStr;
+    }
+  };
+
   const totalRooms = displayCentres?.reduce((acc, c) => acc + (c.rooms?.length || 0), 0) || 0;
   const totalCapacity = displayCentres?.reduce((acc, c) => acc + (c.capacity || 0), 0) || 0;
 
@@ -152,10 +171,10 @@ export function ExamDetailDrawer({
               <span>Registration Window</span>
             </h4>
             <p className="text-slate-700">
-              Opens: <strong>{formatDate(exam.registrationStartAt)}</strong>
+              Opens: <strong>{formatDateTime(exam.registrationStartAt)}</strong>
             </p>
             <p className="text-slate-700">
-              Closes: <strong className="text-amber-700">{formatDate(exam.registrationEndAt)}</strong>
+              Closes: <strong className="text-amber-700">{formatDateTime(exam.registrationEndAt)}</strong>
             </p>
           </div>
         </div>
