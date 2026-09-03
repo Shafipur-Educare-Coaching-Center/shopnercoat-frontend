@@ -49,22 +49,27 @@ export async function getStudentAnalytics(token: string): Promise<StudentDashboa
           .filter((p): p is number => typeof p === 'number' && p > 0);
         const bestPosition = positions.length > 0 ? Math.min(...positions) : null;
 
-        const kpiSummary: KpiSummary = data.kpiSummary || {
+        const rawKpi = data.kpiSummary;
+        const currentRank = totalResults > 0 && bestPosition
+          ? bestPosition
+          : (totalResults > 0 && rawKpi?.nationalMeritStanding?.currentRank ? rawKpi.nationalMeritStanding.currentRank : 0);
+
+        const kpiSummary: KpiSummary = {
           nationalMeritStanding: {
-            currentRank: bestPosition || 0,
-            percentile: totalResults > 0 && bestPosition ? Number(((1 - bestPosition / 1000) * 100).toFixed(1)) : 0,
-            totalExaminees: 1000,
-            rankChange: 0,
-            trendDirection: 'SAME',
+            currentRank,
+            percentile: totalResults > 0 && currentRank > 0 ? (rawKpi?.nationalMeritStanding?.percentile || Number(((1 - currentRank / 1000) * 100).toFixed(1))) : 0,
+            totalExaminees: rawKpi?.nationalMeritStanding?.totalExaminees || 1000,
+            rankChange: rawKpi?.nationalMeritStanding?.rankChange || 0,
+            trendDirection: rawKpi?.nationalMeritStanding?.trendDirection || 'SAME',
           },
-          meanScore: {
+          meanScore: rawKpi?.meanScore || {
             averageMarks: avgMarks,
             totalPossible: 100.0,
             percentage: avgMarks,
             passCutoff: 40.0,
             growthPercentage: 0,
           },
-          omrPrecisionRate: {
+          omrPrecisionRate: rawKpi?.omrPrecisionRate || {
             accuracyPercentage: accuracyRate,
             totalAttempted,
             totalCorrect,
@@ -72,11 +77,11 @@ export async function getStudentAnalytics(token: string): Promise<StudentDashboa
             totalSkipped,
             totalDeductions: Number((totalWrong * 0.25).toFixed(2)),
           },
-          testSeriesProgress: {
+          testSeriesProgress: rawKpi?.testSeriesProgress || {
             completedTests: totalResults,
-            totalEnrolledTests: totalResults,
-            completionPercentage: totalResults > 0 ? 100 : 0,
-            nextExamLabel: data.upcomingExam?.examTitle || undefined,
+            totalEnrolledTests: Math.max(totalResults, 0),
+            progressPercentage: totalResults > 0 ? 100 : 0,
+            nextExamLabel: data.upcomingExam?.examTitle || 'Next Mock Test',
           },
         };
 
@@ -249,7 +254,7 @@ export async function getStudentAnalytics(token: string): Promise<StudentDashboa
     },
     kpiSummary: {
       nationalMeritStanding: {
-        currentRank: bestPosition || 0,
+        currentRank: totalResults > 0 && bestPosition ? bestPosition : 0,
         percentile: totalResults > 0 && bestPosition ? Number(((1 - bestPosition / 1000) * 100).toFixed(1)) : 0,
         totalExaminees: 1000,
         rankChange: 0,
