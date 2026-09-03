@@ -14,7 +14,9 @@ import {
   ShieldCheck,
   CheckCircle2,
   Layers,
+  Clock3,
 } from 'lucide-react';
+import { formatExamDate } from '@/lib/dateUtils';
 
 interface EnrollmentPassCardProps {
   enrollment: ExamEnrollmentAdmin;
@@ -36,21 +38,18 @@ export function EnrollmentPassCard({
   const examCode = exam?.code || 'NMT';
 
   const formattedDate = exam?.examDate
-    ? new Date(exam.examDate).toLocaleDateString('en-US', {
-        weekday: 'short',
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-      })
+    ? formatExamDate(exam.examDate, true)
     : 'Upcoming Test';
 
   const timeDisplay = exam?.startTime && exam?.endTime
-    ? `${exam.startTime} - ${exam.endTime}`
-    : '10:00 AM - 11:00 AM';
+    ? `${exam.startTime} – ${exam.endTime}`
+    : '10:00 AM – 11:15 AM';
 
-  const roomDisplay = admitCard?.locationSnapshot?.roomNumber || enrollment.centre?.roomNumber || 'Room Allocated';
-  const seatDisplay = admitCard?.locationSnapshot?.seatNumber || enrollment.centre?.seatNumber || 'Seat Allocated';
+  const roomDisplay = admitCard?.locationSnapshot?.roomNumber || enrollment.centre?.roomNumber || 'Room Allocation Pending';
+  const seatDisplay = admitCard?.locationSnapshot?.seatNumber || enrollment.centre?.seatNumber || 'Seat Pending';
   const venueDisplay = admitCard?.locationSnapshot?.centreName || enrollment.centre?.name || 'Shafipur Central Examination Hall';
+
+  const isAdmitIssued = admitCard?.status === 'GENERATED';
 
   const tokenDisplay = admitCard?.verificationToken || admitCard?.admitCardNumber || `ADM-${candidateRoll}-${examCode}`;
   const downloadUrl = admitCard?.pdfUrl || (admitCard?.verificationToken
@@ -72,10 +71,17 @@ export function EnrollmentPassCard({
               {examCode}
             </span>
 
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200/80 text-[11px] font-bold">
-              <CheckCircle2 className="size-3 text-emerald-600" />
-              Seat Allocation Confirmed
-            </span>
+            {isAdmitIssued ? (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200/80 text-[11px] font-bold">
+                <CheckCircle2 className="size-3 text-emerald-600" />
+                Admit Pass Ready
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-50 text-amber-800 border border-amber-200/80 text-[11px] font-bold">
+                <Clock3 className="size-3 text-amber-600" />
+                Registration Confirmed (Admit Issuing Soon)
+              </span>
+            )}
           </div>
 
           <h3 className="font-heading font-black text-base sm:text-lg text-slate-900 leading-snug">
@@ -98,7 +104,7 @@ export function EnrollmentPassCard({
           </div>
         </div>
 
-        {/* Candidate & Seat Details Grid */}
+        {/* Candidate & Location Snapshot Grid */}
         <div className="p-3.5 rounded-2xl bg-slate-50/80 border border-slate-100 grid grid-cols-3 gap-2 text-center text-xs">
           <div>
             <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
@@ -113,7 +119,7 @@ export function EnrollmentPassCard({
             <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
               Hall Room
             </p>
-            <p className="font-bold text-xs sm:text-sm text-[#00796B] mt-0.5">
+            <p className={`font-bold text-xs sm:text-sm mt-0.5 ${isAdmitIssued ? 'text-[#00796B]' : 'text-slate-500'}`}>
               {roomDisplay}
             </p>
           </div>
@@ -122,7 +128,7 @@ export function EnrollmentPassCard({
             <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
               Assigned Seat
             </p>
-            <p className="font-mono font-bold text-xs sm:text-sm text-slate-900 mt-0.5">
+            <p className={`font-mono font-bold text-xs sm:text-sm mt-0.5 ${isAdmitIssued ? 'text-slate-900' : 'text-slate-500'}`}>
               {seatDisplay}
             </p>
           </div>
@@ -146,8 +152,8 @@ export function EnrollmentPassCard({
               <ShieldCheck className="size-3 text-teal-300" />
               Digital Hall Pass
             </span>
-            <span className="text-[9px] font-mono font-bold bg-white/15 px-2 py-0.5 rounded-full text-white">
-              VERIFIED
+            <span className={`text-[9px] font-mono font-bold px-2 py-0.5 rounded-full ${isAdmitIssued ? 'bg-emerald-500/30 text-emerald-200 border border-emerald-400/40' : 'bg-amber-400/20 text-amber-200 border border-amber-400/30'}`}>
+              {isAdmitIssued ? 'ISSUED' : 'PENDING'}
             </span>
           </div>
 
@@ -172,13 +178,25 @@ export function EnrollmentPassCard({
 
         {/* Action Buttons */}
         <div className="space-y-2 pt-2">
-          <Link
-            href={downloadUrl}
-            className="w-full py-2.5 px-4 rounded-xl bg-white text-[#00594D] hover:bg-teal-50 font-bold text-xs shadow-xs transition-colors flex items-center justify-center gap-1.5"
-          >
-            <Download className="size-3.5" />
-            <span>Download Admit PDF</span>
-          </Link>
+          {isAdmitIssued ? (
+            <Link
+              href={downloadUrl}
+              className="w-full py-2.5 px-4 rounded-xl bg-white text-[#00594D] hover:bg-teal-50 font-bold text-xs shadow-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+            >
+              <Download className="size-3.5" />
+              <span>Download Admit PDF</span>
+            </Link>
+          ) : (
+            <button
+              type="button"
+              disabled
+              className="w-full py-2.5 px-4 rounded-xl bg-white/20 text-white/80 font-bold text-xs border border-white/20 flex items-center justify-center gap-1.5 cursor-not-allowed opacity-80"
+              title="Admit Card will be available for download once issued by the authority"
+            >
+              <Clock3 className="size-3.5 text-amber-300" />
+              <span>Admit Card Issuing Soon</span>
+            </button>
+          )}
 
           <button
             type="button"

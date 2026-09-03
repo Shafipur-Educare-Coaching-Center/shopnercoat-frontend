@@ -13,7 +13,10 @@ import {
   Printer,
   FileText,
   CheckCircle2,
+  Clock3,
+  AlertCircle,
 } from 'lucide-react';
+import { formatExamDate } from '@/lib/dateUtils';
 
 interface AdmitCardPassCardProps {
   admitCard: AdmitCard;
@@ -35,22 +38,20 @@ export function AdmitCardPassCard({
   const examCode = exam?.code || 'NMT';
 
   const formattedDate = exam?.examDate
-    ? new Date(exam.examDate).toLocaleDateString('en-US', {
-        weekday: 'short',
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-      })
+    ? formatExamDate(exam.examDate, true)
     : 'Upcoming Test';
 
   const timeDisplay = exam?.startTime && exam?.endTime
-    ? `${exam.startTime} - ${exam.endTime}`
-    : '10:00 AM - 11:00 AM';
+    ? `${exam.startTime} – ${exam.endTime}`
+    : '10:00 AM – 11:15 AM';
 
-  const roomDisplay = admitCard.locationSnapshot?.roomNumber || 'Room #04';
-  const seatDisplay = admitCard.locationSnapshot?.seatNumber || 'Seat Allocated';
+  const roomDisplay = admitCard.locationSnapshot?.roomNumber || 'Room Allocation Pending';
+  const seatDisplay = admitCard.locationSnapshot?.seatNumber || 'Seat Pending';
   const venueDisplay = admitCard.locationSnapshot?.centreName || 'Shafipur Central Examination Hall';
   const tokenDisplay = admitCard.verificationToken || admitCard.admitCardNumber || `ADM-${rollNumber}-${examCode}`;
+  
+  const isIssued = admitCard.status === 'GENERATED';
+
   const downloadUrl = admitCard.pdfUrl || (admitCard.verificationToken
     ? `/api/bff/admit-cards/download/${admitCard.verificationToken}`
     : `/admit-cards/verify/${tokenDisplay}`);
@@ -69,10 +70,17 @@ export function AdmitCardPassCard({
               {examCode}
             </span>
 
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200/80 text-[11px] font-bold">
-              <CheckCircle2 className="size-3 text-emerald-600" />
-              Verified Admission Pass
-            </span>
+            {isIssued ? (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200/80 text-[11px] font-bold">
+                <CheckCircle2 className="size-3 text-emerald-600" />
+                Admit Card Issued
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-50 text-amber-800 border border-amber-200/80 text-[11px] font-bold">
+                <Clock3 className="size-3 text-amber-600" />
+                Issuing Soon (Processing)
+              </span>
+            )}
           </div>
 
           <h3 className="font-heading font-black text-base sm:text-lg text-slate-900 leading-snug">
@@ -110,7 +118,7 @@ export function AdmitCardPassCard({
             <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
               Hall Room
             </p>
-            <p className="font-bold text-xs sm:text-sm text-[#00796B] mt-0.5">
+            <p className={`font-bold text-xs sm:text-sm mt-0.5 ${isIssued ? 'text-[#00796B]' : 'text-slate-500'}`}>
               {roomDisplay}
             </p>
           </div>
@@ -119,7 +127,7 @@ export function AdmitCardPassCard({
             <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
               Assigned Seat
             </p>
-            <p className="font-mono font-bold text-xs sm:text-sm text-slate-900 mt-0.5">
+            <p className={`font-mono font-bold text-xs sm:text-sm mt-0.5 ${isIssued ? 'text-slate-900' : 'text-slate-500'}`}>
               {seatDisplay}
             </p>
           </div>
@@ -140,8 +148,8 @@ export function AdmitCardPassCard({
               <ShieldCheck className="size-3 text-teal-300" />
               Digital Admit Pass
             </span>
-            <span className="text-[9px] font-mono font-bold bg-white/15 px-2 py-0.5 rounded-full text-white">
-              VERIFIED
+            <span className={`text-[9px] font-mono font-bold px-2 py-0.5 rounded-full ${isIssued ? 'bg-emerald-500/30 text-emerald-200 border border-emerald-400/40' : 'bg-amber-400/20 text-amber-200 border border-amber-400/30'}`}>
+              {isIssued ? 'ISSUED' : 'PENDING'}
             </span>
           </div>
 
@@ -166,23 +174,46 @@ export function AdmitCardPassCard({
 
         {/* Action Buttons */}
         <div className="space-y-2 pt-2">
-          <Link
-            href={downloadUrl}
-            className="w-full py-2.5 px-4 rounded-xl bg-white text-[#00594D] hover:bg-teal-50 font-bold text-xs shadow-xs transition-colors flex items-center justify-center gap-1.5"
-          >
-            <Download className="size-3.5" />
-            <span>Download Official PDF</span>
-          </Link>
-
-          <div className="flex items-center gap-2">
+          {isIssued ? (
+            <Link
+              href={downloadUrl}
+              className="w-full py-2.5 px-4 rounded-xl bg-white text-[#00594D] hover:bg-teal-50 font-bold text-xs shadow-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+            >
+              <Download className="size-3.5" />
+              <span>Download Official PDF</span>
+            </Link>
+          ) : (
             <button
               type="button"
-              onClick={() => onOpenPrintPreview(admitCard)}
-              className="flex-1 py-2 px-3 rounded-xl bg-white/15 hover:bg-white/20 text-white font-bold text-xs border border-white/15 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+              disabled
+              className="w-full py-2.5 px-4 rounded-xl bg-white/20 text-white/80 font-bold text-xs border border-white/20 flex items-center justify-center gap-1.5 cursor-not-allowed opacity-80"
+              title="Admit Card will be available for download once issued by the authority"
             >
-              <Printer className="size-3.5" />
-              <span>Print Pass</span>
+              <Clock3 className="size-3.5 text-amber-300" />
+              <span>Admit Card Issuing Soon</span>
             </button>
+          )}
+
+          <div className="flex items-center gap-2">
+            {isIssued ? (
+              <button
+                type="button"
+                onClick={() => onOpenPrintPreview(admitCard)}
+                className="flex-1 py-2 px-3 rounded-xl bg-white/15 hover:bg-white/20 text-white font-bold text-xs border border-white/15 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <Printer className="size-3.5" />
+                <span>Print Pass</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                disabled
+                className="flex-1 py-2 px-3 rounded-xl bg-white/10 text-white/50 font-bold text-xs border border-white/10 flex items-center justify-center gap-1.5 cursor-not-allowed opacity-60"
+              >
+                <Printer className="size-3.5" />
+                <span>Not Issued Yet</span>
+              </button>
+            )}
 
             <button
               type="button"
