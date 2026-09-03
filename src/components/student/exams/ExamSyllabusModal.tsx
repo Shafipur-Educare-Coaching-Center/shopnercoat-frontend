@@ -15,7 +15,7 @@ import {
   Target,
   ShieldCheck,
 } from 'lucide-react';
-import { formatExamDate, formatExamTime, formatExamRegWindow } from '@/lib/dateUtils';
+import { formatExamDate, formatExamTime, formatExamRegWindow, formatExamDuration } from '@/lib/dateUtils';
 
 interface ExamSyllabusModalProps {
   exam: Exam | null;
@@ -27,6 +27,7 @@ export function ExamSyllabusModal({ exam, onClose }: ExamSyllabusModalProps) {
 
   const examFormattedDate = formatExamDate(exam.examDate, true);
   const examTimeSlot = exam.startTime && exam.endTime ? `${exam.startTime} – ${exam.endTime}` : '10:00 AM – 11:15 AM';
+  const durationStr = formatExamDuration(exam.startTime, exam.endTime);
   const regWindowStr = formatExamRegWindow(exam.registrationStartAt, exam.registrationEndAt);
 
   return (
@@ -67,7 +68,7 @@ export function ExamSyllabusModal({ exam, onClose }: ExamSyllabusModalProps) {
             <div>
               <span className="text-[10px] text-slate-400 font-bold block uppercase">Test Schedule</span>
               <span className="font-bold text-slate-800">{examFormattedDate}</span>
-              <span className="text-[11px] text-slate-500 block">{examTimeSlot}</span>
+              <span className="text-[11px] text-slate-500 block">{examTimeSlot} ({durationStr})</span>
             </div>
           </div>
 

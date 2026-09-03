@@ -311,3 +311,43 @@ export function evaluateExamRegistration(exam: {
     badgeVariant: 'closed',
   };
 }
+
+/**
+ * Calculates exam duration in minutes from startTime and endTime strings (e.g. "10:00 AM" to "11:15 AM")
+ */
+export function calculateExamDurationMinutes(startTime?: string | null, endTime?: string | null): number {
+  if (!startTime || !endTime) return 60;
+
+  const parseTimeToMinutes = (tStr: string): number | null => {
+    const raw = tStr.trim().toUpperCase();
+    const match = raw.match(/^(\d{1,2}):(\d{2})(?:\s*(AM|PM))?$/i);
+    if (!match) return null;
+
+    let hour = parseInt(match[1], 10);
+    const minute = parseInt(match[2], 10);
+    const meridian = match[3];
+
+    if (meridian === 'PM' && hour < 12) hour += 12;
+    if (meridian === 'AM' && hour === 12) hour = 0;
+
+    return hour * 60 + minute;
+  };
+
+  const startMin = parseTimeToMinutes(startTime);
+  const endMin = parseTimeToMinutes(endTime);
+
+  if (startMin === null || endMin === null) return 60;
+
+  let diff = endMin - startMin;
+  if (diff < 0) diff += 24 * 60; // Crosses midnight
+
+  return diff > 0 ? diff : 60;
+}
+
+/**
+ * Formats exam duration into readable text e.g. "75 Mins"
+ */
+export function formatExamDuration(startTime?: string | null, endTime?: string | null): string {
+  const mins = calculateExamDurationMinutes(startTime, endTime);
+  return `${mins} Mins`;
+}

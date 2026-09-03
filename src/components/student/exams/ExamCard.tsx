@@ -18,6 +18,7 @@ import {
   formatExamDate,
   formatExamRegWindow,
   evaluateExamRegistration,
+  formatExamDuration,
 } from '@/lib/dateUtils';
 
 interface ExamCardProps {
@@ -118,7 +119,7 @@ export function ExamCard({
 
           <div className="p-2 rounded-xl bg-slate-50 border border-slate-100">
             <span className="font-mono font-bold text-xs text-slate-900 block">
-              60 Mins
+              {formatExamDuration(exam.startTime, exam.endTime)}
             </span>
             <span className="text-[10px] text-slate-400 font-medium">Duration</span>
           </div>
