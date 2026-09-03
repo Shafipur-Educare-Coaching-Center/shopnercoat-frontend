@@ -26,6 +26,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Exam, ExamStatus } from '@/types/exam.types';
+import { formatExamDate, formatExamRegWindow } from '@/lib/dateUtils';
 
 interface ExamCardGridProps {
   exams: Exam[];
@@ -93,36 +94,6 @@ export function ExamCardGrid({
             <span>{status}</span>
           </span>
         );
-    }
-  };
-
-  const formatDate = (isoStr: string) => {
-    try {
-      const d = new Date(isoStr);
-      return d.toLocaleDateString('en-GB', {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric',
-      });
-    } catch {
-      return isoStr.split('T')[0];
-    }
-  };
-
-  const formatRegWindow = (startIso?: string, endIso?: string) => {
-    if (!endIso) return 'Open';
-    try {
-      const endD = new Date(endIso);
-      const startD = startIso ? new Date(startIso) : null;
-      const timeFmt = new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-      const dateFmt = new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: 'short' });
-
-      if (startD && startD.toDateString() === endD.toDateString()) {
-        return `${dateFmt.format(endD)}, ${timeFmt.format(startD)} – ${timeFmt.format(endD)}`;
-      }
-      return `${dateFmt.format(endD)}, ${timeFmt.format(endD)}`;
-    } catch {
-      return endIso.split('T')[0];
     }
   };
 
@@ -224,7 +195,7 @@ export function ExamCardGrid({
                     <Calendar className="size-3.5 text-teal-600 shrink-0" />
                     <span>Test Date:</span>
                   </span>
-                  <strong className="text-slate-900">{formatDate(exam.examDate)}</strong>
+                  <strong className="text-slate-900">{formatExamDate(exam.examDate)}</strong>
                 </div>
 
                 <div className="flex items-center justify-between text-slate-700">
@@ -242,7 +213,7 @@ export function ExamCardGrid({
                     <span>Reg. Window:</span>
                   </span>
                   <span className="text-[11px] font-semibold text-amber-700">
-                    {formatRegWindow(exam.registrationStartAt, exam.registrationEndAt)}
+                    {formatExamRegWindow(exam.registrationStartAt, exam.registrationEndAt)}
                   </span>
                 </div>
               </div>

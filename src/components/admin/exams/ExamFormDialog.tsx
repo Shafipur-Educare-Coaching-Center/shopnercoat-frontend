@@ -23,44 +23,13 @@ import {
 import { createExamAction } from '@/features/admin/exams/actions/createExamAction';
 import { updateExamAction } from '@/features/admin/exams/actions/updateExamAction';
 import { Exam, ExamStatus } from '@/types/exam.types';
+import { toDateTimeLocalInput, toDateInput } from '@/lib/dateUtils';
 
 interface ExamFormDialogProps {
   isOpen: boolean;
   onClose: () => void;
   exam?: Exam | null;
   onSuccess?: (exam: Exam, isEdit: boolean) => void;
-}
-
-function toLocalInputDateTime(isoStr?: string): string {
-  if (!isoStr) return '';
-  try {
-    const d = new Date(isoStr);
-    if (isNaN(d.getTime())) return '';
-    const pad = (n: number) => String(n).padStart(2, '0');
-    const y = d.getFullYear();
-    const m = pad(d.getMonth() + 1);
-    const day = pad(d.getDate());
-    const h = pad(d.getHours());
-    const min = pad(d.getMinutes());
-    return `${y}-${m}-${day}T${h}:${min}`;
-  } catch {
-    return '';
-  }
-}
-
-function toLocalInputDate(isoStr?: string): string {
-  if (!isoStr) return '';
-  try {
-    const d = new Date(isoStr);
-    if (isNaN(d.getTime())) return '';
-    const pad = (n: number) => String(n).padStart(2, '0');
-    const y = d.getFullYear();
-    const m = pad(d.getMonth() + 1);
-    const day = pad(d.getDate());
-    return `${y}-${m}-${day}`;
-  } catch {
-    return '';
-  }
 }
 
 export function ExamFormDialog({
@@ -107,11 +76,11 @@ export function ExamFormDialog({
         description: exam.description || '',
         totalMarks: exam.totalMarks || 100,
         passMarks: exam.passMarks || 40,
-        examDate: toLocalInputDate(exam.examDate),
+        examDate: toDateInput(exam.examDate),
         startTime: exam.startTime || '10:00 AM',
         endTime: exam.endTime || '11:15 AM',
-        registrationStartAt: toLocalInputDateTime(exam.registrationStartAt),
-        registrationEndAt: toLocalInputDateTime(exam.registrationEndAt),
+        registrationStartAt: toDateTimeLocalInput(exam.registrationStartAt),
+        registrationEndAt: toDateTimeLocalInput(exam.registrationEndAt),
         instructions: exam.instructions || '',
         status: exam.status || 'DRAFT',
       });

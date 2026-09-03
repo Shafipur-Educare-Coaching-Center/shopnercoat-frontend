@@ -14,6 +14,11 @@ import {
   AlertCircle,
   Clock3,
 } from 'lucide-react';
+import {
+  formatExamDate,
+  formatExamRegWindow,
+  evaluateExamRegistration,
+} from '@/lib/dateUtils';
 
 interface ExamCardProps {
   exam: Exam;
@@ -22,51 +27,20 @@ interface ExamCardProps {
   onEnrollClick: (exam: Exam) => void;
 }
 
-function formatRegWindow(startIso?: string, endIso?: string): string {
-  if (!endIso) return 'Open for registration';
-  try {
-    const endD = new Date(endIso);
-    const startD = startIso ? new Date(startIso) : null;
-    const timeFmt = new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-    const dateFmt = new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: 'short' });
-
-    if (startD && startD.toDateString() === endD.toDateString()) {
-      return `${dateFmt.format(endD)}, ${timeFmt.format(startD)} – ${timeFmt.format(endD)}`;
-    }
-    return `${dateFmt.format(endD)}, ${timeFmt.format(endD)}`;
-  } catch {
-    return endIso.split('T')[0];
-  }
-}
-
 export function ExamCard({
   exam,
   isEnrolled,
   onOpenSyllabus,
   onEnrollClick,
 }: ExamCardProps) {
-  const formattedDate = exam.examDate
-    ? new Date(exam.examDate).toLocaleDateString('en-US', {
-        weekday: 'short',
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-      })
-    : 'Friday, Oct 24, 2026';
+  const formattedDate = formatExamDate(exam.examDate, true);
 
   const timeDisplay = exam.startTime && exam.endTime
-    ? `${exam.startTime} - ${exam.endTime}`
-    : '10:00 AM - 11:00 AM';
+    ? `${exam.startTime} – ${exam.endTime}`
+    : '10:00 AM – 11:15 AM';
 
-  const now = new Date();
-  const regStart = exam.registrationStartAt ? new Date(exam.registrationStartAt) : null;
-  const regEnd = exam.registrationEndAt ? new Date(exam.registrationEndAt) : null;
-
-  const isBeforeOpen = Boolean(regStart && now < regStart);
-  const isPastDeadline = Boolean(regEnd && now > regEnd);
-
-  const isStatusOpen = exam.status === 'REGISTRATION_OPEN' || !exam.status;
-  const isRegistrationOpen = isStatusOpen && !isBeforeOpen && !isPastDeadline;
+  const regEval = evaluateExamRegistration(exam);
+  const regWindowStr = formatExamRegWindow(exam.registrationStartAt, exam.registrationEndAt);
 
   return (
     <div className="rounded-[28px] bg-white border border-slate-200/80 p-5 sm:p-6 shadow-[0_10px_30px_rgba(15,118,110,0.04)] hover:shadow-[0_15px_35px_rgba(15,118,110,0.08)] hover:border-teal-300 transition-all flex flex-col justify-between group">
@@ -83,15 +57,15 @@ export function ExamCard({
               <CheckCircle2 className="size-3 text-emerald-600" />
               Enrolled Candidate
             </span>
-          ) : isRegistrationOpen ? (
+          ) : regEval.isOpen ? (
             <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-cyan-50 text-[#0891B2] border border-cyan-200/80 text-[11px] font-bold animate-pulse">
               <Sparkles className="size-3" />
               Open for Registration
             </span>
-          ) : isBeforeOpen ? (
+          ) : regEval.status === 'BEFORE_OPEN' ? (
             <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200 text-[11px] font-bold">
               <Clock3 className="size-3 text-amber-600" />
-              Opens Soon
+              {regEval.badgeText}
             </span>
           ) : (
             <span className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-full">
@@ -128,7 +102,7 @@ export function ExamCard({
           {exam.registrationEndAt && (
             <div className="flex items-center gap-1.5 text-[11px] font-semibold text-amber-800 bg-amber-50/70 border border-amber-200/60 px-2.5 py-1 rounded-xl">
               <Clock className="size-3 text-amber-600 shrink-0" />
-              <span>Reg Window: <strong>{formatRegWindow(exam.registrationStartAt, exam.registrationEndAt)}</strong></span>
+              <span>Reg Window: <strong>{regWindowStr}</strong></span>
             </div>
           )}
         </div>
@@ -177,23 +151,23 @@ export function ExamCard({
             <span>View Hall Pass</span>
             <ArrowRight className="size-3.5" />
           </Link>
-        ) : isBeforeOpen ? (
+        ) : regEval.status === 'BEFORE_OPEN' ? (
           <button
             type="button"
             disabled
             className="flex-1 py-2.5 px-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs font-bold transition-all disabled:opacity-80 flex items-center justify-center gap-1.5 cursor-not-allowed"
           >
-            <Clock3 className="size-3.5" />
+            <Clock3 className="size-3.5 text-amber-600" />
             <span>Opens Soon</span>
           </button>
         ) : (
           <button
             type="button"
             onClick={() => onEnrollClick(exam)}
-            disabled={!isRegistrationOpen}
+            disabled={!regEval.isOpen}
             className="flex-1 py-2.5 px-4 rounded-xl bg-[#00695C] hover:bg-[#00594D] text-white text-xs font-bold transition-all shadow-xs hover:shadow-sm active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 cursor-pointer"
           >
-            <span>{isPastDeadline ? 'Registration Closed' : 'Enroll Now'}</span>
+            <span>{regEval.isOpen ? 'Enroll Now' : 'Registration Closed'}</span>
             <ArrowRight className="size-3.5" />
           </button>
         )}

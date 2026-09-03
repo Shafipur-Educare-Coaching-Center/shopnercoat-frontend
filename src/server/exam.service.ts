@@ -16,8 +16,18 @@ import { ApiResponse } from '@/types/api.types';
  */
 function toIsoDateTime(val: string): string {
   if (!val) return new Date().toISOString();
-  if (val.includes('T')) return val;
-  const d = new Date(val);
+  const trimmed = val.trim();
+  if (trimmed.includes('T') && trimmed.endsWith('Z')) return trimmed;
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(trimmed)) {
+    return `${trimmed}:00.000Z`;
+  }
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(trimmed)) {
+    return `${trimmed}.000Z`;
+  }
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+    return `${trimmed}T00:00:00.000Z`;
+  }
+  const d = new Date(trimmed);
   if (!isNaN(d.getTime())) return d.toISOString();
   return new Date().toISOString();
 }

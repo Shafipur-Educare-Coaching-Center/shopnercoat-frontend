@@ -15,6 +15,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Exam, ExamCentre } from '@/types/exam.types';
 import { getExamCentresAction } from '@/features/admin/exams/actions/examCentreActions';
+import { formatExamDate, formatExamTime, formatExamRegWindow } from '@/lib/dateUtils';
 
 interface ExamDetailDrawerProps {
   exam: Exam | null;
@@ -57,39 +58,6 @@ export function ExamDetailDrawer({
   if (!isOpen || !exam) return null;
 
   const displayCentres = centres.length > 0 ? centres : exam.centres || [];
-
-  const formatDate = (isoStr: string) => {
-    try {
-      const d = new Date(isoStr);
-      return d.toLocaleDateString('en-GB', {
-        day: '2-digit',
-        month: 'long',
-        year: 'numeric',
-      });
-    } catch {
-      return isoStr.split('T')[0];
-    }
-  };
-
-  const formatDateTime = (isoStr: string) => {
-    try {
-      const d = new Date(isoStr);
-      const dateStr = d.toLocaleDateString('en-GB', {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric',
-      });
-      const timeStr = d.toLocaleTimeString('en-US', {
-        hour: 'numeric',
-        minute: '2-digit',
-        hour12: true,
-      });
-      return `${dateStr}, ${timeStr}`;
-    } catch {
-      return isoStr;
-    }
-  };
-
   const totalRooms = displayCentres?.reduce((acc, c) => acc + (c.rooms?.length || 0), 0) || 0;
   const totalCapacity = displayCentres?.reduce((acc, c) => acc + (c.capacity || 0), 0) || 0;
 
@@ -157,7 +125,7 @@ export function ExamDetailDrawer({
               <span>Examination Session</span>
             </h4>
             <p className="text-slate-700">
-              Exam Date: <strong>{formatDate(exam.examDate)}</strong>
+              Exam Date: <strong>{formatExamDate(exam.examDate)}</strong>
             </p>
             <p className="text-slate-700 flex items-center gap-1">
               <Clock className="size-3 text-slate-400" />
@@ -171,10 +139,10 @@ export function ExamDetailDrawer({
               <span>Registration Window</span>
             </h4>
             <p className="text-slate-700">
-              Opens: <strong>{formatDateTime(exam.registrationStartAt)}</strong>
+              Opens: <strong>{formatExamDate(exam.registrationStartAt)} at {formatExamTime(exam.registrationStartAt)}</strong>
             </p>
             <p className="text-slate-700">
-              Closes: <strong className="text-amber-700">{formatDateTime(exam.registrationEndAt)}</strong>
+              Closes: <strong className="text-amber-700">{formatExamDate(exam.registrationEndAt)} at {formatExamTime(exam.registrationEndAt)}</strong>
             </p>
           </div>
         </div>
