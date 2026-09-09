@@ -2,7 +2,7 @@ export const ROUTES = {
   HOME: '/',
   HOW_TO_REGISTER: '/how-to-register',
   ANNOUNCEMENTS: '/announcements',
-  RANKING: '/rankings',
+  RANKING: '/ranking',
   LOGIN: '/login',
   ADMIN_LOGIN: '/admin/login',
   REGISTER: '/register',
